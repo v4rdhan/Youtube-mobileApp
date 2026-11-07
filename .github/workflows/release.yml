@@ -80,7 +80,9 @@ jobs:
               output.write(f"tag={tag}\n")
 
       - name: Run checks and build release APK
-        run: bash ./gradlew --no-daemon clean testDebugUnitTest lintDebug assembleRelease
+        run: |
+          chmod +x ./gradlew
+          bash ./gradlew --no-daemon clean testDebugUnitTest lintDebug assembleRelease
 
       - name: Create APK checksum
         run: sha256sum app/build/outputs/apk/release/app-release-unsigned.apk > app/build/outputs/apk/release/app-release-unsigned.apk.sha256

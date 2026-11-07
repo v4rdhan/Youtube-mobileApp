@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "ndk;27.2.12479018"
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install 1.98 --profile minimal
+          rustup target add --toolchain 1.98 aarch64-linux-android x86_64-linux-android
+
+      - name: Run Rust tests
+        run: cargo +1.98 test --locked --manifest-path native/Cargo.toml
+
+      - name: Increment release version
+        id: version
+        shell: python
+        run: |
+          import os
+          import re
+          from pathlib import Path
+
+          gradle_file = Path("app/build.gradle.kts")
+          text = gradle_file.read_text()
+
+          code_match = re.search(r"(?m)^(\s*)versionCode = (\d+)\s*$", text)
+          name_match = re.search(r'(?m)^(\s*)versionName = "(\d+)\.(\d+)\.(\d+)"\s*$', text)
+          if code_match is None or name_match is None:
+              raise SystemExit("Expected numeric versionCode and semantic versionName in app/build.gradle.kts")
+
+          version_code = int(code_match.group(2)) + 1
+          major, minor, patch = (int(name_match.group(i)) for i in (2, 3, 4))
+          version_name = f"{major}.{minor}.{patch + 1}"
+
+          text = text[:code_match.start()] + f"{code_match.group(1)}versionCode = {version_code}" + text[code_match.end():]
+          name_match = re.search(r'(?m)^(\s*)versionName = "\d+\.\d+\.\d+"\s*$', text)
+          text = text[:name_match.start()] + f'{name_match.group(1)}versionName = "{version_name}"' + text[name_match.end():]
+          gradle_file.write_text(text)
+
+          tag = f"v{version_name}"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version_code={version_code}\n")
+              output.write(f"version_name={version_name}\n")
+              output.write(f"tag={tag}\n")
+
+      - name: Run checks and build release APK
+        run: ./gradlew --no-daemon clean testDebugUnitTest lintDebug assembleRelease
+
+      - name: Create APK checksum
+        run: sha256sum app/build/outputs/apk/release/app-release-unsigned.apk > app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+
+      - name: Commit version and create tag
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle.kts
+          git commit -m "chore(release): ${RELEASE_TAG}"
+          git tag "${RELEASE_TAG}"
+          git push --atomic origin HEAD:main "refs/tags/${RELEASE_TAG}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk.sha256

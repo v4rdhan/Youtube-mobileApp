@@ -52,6 +52,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 You can also open this folder in Android Studio. For a distributable release, configure your own signing key or use Android Studio's Generate Signed Bundle / APK action. No private signing key is included.
 
+## CI and releases
+
+GitHub Actions runs unit tests, Android lint, and Rust tests for non-`main` pushes and pull requests targeting `main`. When a pull request is merged into `main`, the release workflow increments `versionCode` and the patch portion of `versionName`, builds the release APK, commits the version bump, creates a matching `v<versionName>` tag, and publishes the unsigned APK with a SHA-256 checksum in a GitHub Release. The workflow needs `contents: write` permission and permission to push version commits to `main`; branch protection rules may need to allow GitHub Actions to do so. The APK is unsigned and must be signed before distribution through an app store.
+
 ## Verify
 
 ```powershell

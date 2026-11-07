@@ -1,0 +1,14 @@
+! StreamShield starter rules, MPL-2.0
+! Intentionally small. Settings can download EasyList + EasyPrivacy.
+||doubleclick.net^
+||googlesyndication.com^
+||googleadservices.com^
+||youtube.com/api/stats/ads^
+||youtube.com/pagead/^
+||youtube.com/ptracking^
+youtube.com##ytm-ad-slot-renderer
+youtube.com##ytm-promoted-sparkles-web-renderer
+youtube.com##ytm-promoted-sparkles-text-search-renderer
+youtube.com##ytm-companion-ad-renderer
+youtube.com##ytd-ad-slot-renderer
+youtube.com##ytd-promoted-sparkles-web-renderer

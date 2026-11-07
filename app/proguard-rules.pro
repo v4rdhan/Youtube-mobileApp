@@ -1,0 +1,1 @@
+-keep class app.streamshield.blocking.NativeBridge { *; }

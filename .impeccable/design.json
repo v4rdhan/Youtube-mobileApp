@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T17:53:53Z",
+  "title": "Design System: StreamShield",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Pale Leaf"
+      },
+      "on-primary": {
+        "role": "primary",
+        "displayName": "Deep Leaf Ink"
+      },
+      "primary-container": {
+        "role": "primary",
+        "displayName": "Forest Container"
+      },
+      "on-primary-container": {
+        "role": "primary",
+        "displayName": "Light Leaf Ink"
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Muted Sage"
+      },
+      "on-secondary": {
+        "role": "secondary",
+        "displayName": "Dark Sage Ink"
+      },
+      "secondary-container": {
+        "role": "secondary",
+        "displayName": "Moss Container"
+      },
+      "on-secondary-container": {
+        "role": "secondary",
+        "displayName": "Light Sage Ink"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Charcoal Green"
+      },
+      "surface-variant": {
+        "role": "neutral",
+        "displayName": "Grey Moss"
+      },
+      "on-surface": {
+        "role": "neutral",
+        "displayName": "Soft Chalk"
+      },
+      "on-surface-variant": {
+        "role": "neutral",
+        "displayName": "Muted Chalk"
+      },
+      "outline": {
+        "role": "neutral",
+        "displayName": "Sage Outline"
+      }
+    },
+    "typographyMeta": {
+      "headline-medium": {
+        "displayName": "Material 3 Headline Medium",
+        "purpose": "Protection status and the Saved page heading."
+      },
+      "title-large": {
+        "displayName": "Material 3 Title Large",
+        "purpose": "Toolbar, Saved empty-state title, and connection-error title."
+      },
+      "title-medium": {
+        "displayName": "Material 3 Title Medium",
+        "purpose": "Settings section headings."
+      },
+      "body-medium": {
+        "displayName": "Material 3 Body Medium",
+        "purpose": "Explanations and session/filter status."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [],
+    "platform": {
+      "name": "Android Views with Material 3",
+      "scope": "Phone",
+      "dimensionUnit": "dp",
+      "inheritedDefaults": "Android and Material 3 own numeric typography, shapes, elevation, motion, and interaction feedback.",
+      "componentPreviewPolicy": "Native components are documented in DESIGN.md. No HTML/CSS browser previews or synthetic tonal ramps are supplied."
+    }
+  },
+  "components": [],
+  "narrative": {
+    "northStar": "Quiet viewing room",
+    "overview": "StreamShield surrounds live YouTube content with a restrained native Android interface. Charcoal-green surfaces recede around video; pale green identifies protection and native actions. Android Material 3 supplies controls, type hierarchy, and interaction feedback.\n\nNative screens use readable vertical sections and open space. The live site's imagery and playback interface lead the viewing experience. This document records the implemented phone interface; it does not establish a tablet or desktop layout.",
+    "keyCharacteristics": [
+      "A dark charcoal-green shell with pale-green actions.",
+      "Native Material 3 typography and controls.",
+      "Live video and site content as the principal imagery.",
+      "Scrollable native settings and saved links with explicit state feedback."
+    ],
+    "rules": [
+      {
+        "name": "The Action Color Rule",
+        "body": "Use the primary green for native actions and protection state; let live YouTube content retain its own colors.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do reuse Material 3 components and existing theme roles.",
+      "Do retain the primary-green action and protection role.",
+      "Do use native scrolling, font scaling, and system insets on phone screens.",
+      "Do preserve real content and explicit loading, disabled, empty, and failure states."
+    ],
+    "donts": [
+      "Don't replace live YouTube content with a fabricated feed or static playback mockup.",
+      "Don't add custom font, corner, shadow, or motion tokens without implementation evidence.",
+      "Don't apply native-shell palette rules to YouTube's own rendered interface.",
+      "Don't treat phone validation as evidence for tablet or desktop layouts."
+    ]
+  }
+}

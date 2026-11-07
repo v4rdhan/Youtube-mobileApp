@@ -40,7 +40,7 @@ jobs:
           rustup target add --toolchain 1.98 aarch64-linux-android x86_64-linux-android
 
       - name: Run unit tests and lint
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug
+        run: bash ./gradlew --no-daemon testDebugUnitTest lintDebug
 
       - name: Run Rust tests
         run: cargo +1.98 test --locked --manifest-path native/Cargo.toml

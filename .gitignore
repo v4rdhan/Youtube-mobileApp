@@ -4,5 +4,7 @@ local.properties
 **/build/
 native/target/
 captures/
+*.keystore
+*.jks
 *.iml
 .idea/

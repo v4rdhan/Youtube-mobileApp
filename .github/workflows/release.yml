@@ -84,8 +84,38 @@ jobs:
           chmod +x ./gradlew
           bash ./gradlew --no-daemon clean testDebugUnitTest lintDebug assembleRelease
 
+      - name: Sign release APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "::error::Configure ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD repository secrets."
+            exit 1
+          fi
+
+          keystore="$RUNNER_TEMP/release.keystore"
+          build_tools="$ANDROID_HOME/build-tools/35.0.0"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          test -s "$keystore"
+          "$build_tools/apksigner" sign \
+            --ks "$keystore" \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD \
+            --key-pass env:ANDROID_KEY_PASSWORD \
+            --out app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+          "$build_tools/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+
       - name: Create APK checksum
-        run: sha256sum app/build/outputs/apk/release/app-release-unsigned.apk > app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+        run: sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
+
+      - name: Remove temporary keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
 
       - name: Commit version and create tag
         env:
@@ -105,5 +135,5 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
           files: |
-            app/build/outputs/apk/release/app-release-unsigned.apk
-            app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/app-release.apk.sha256

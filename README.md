@@ -84,3 +84,4 @@ Source archive SHA-256: `B94FD587287A402C544235D2FA3CFD50371D65C857AAF7F7AA97940
 YouTube receives browser traffic and cookies as it does in a browser. Optional list updates contact easylist.to. Saved links, preferences, and filter caches stay in private app storage. There is no app analytics backend; app backups and device transfers are excluded. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LICENSE](LICENSE).
 
 Independent project; not affiliated with YouTube, Google, or Brave. If you redistribute an APK, make its corresponding MPL-covered source available to recipients and retain the notices. Review YouTube's current terms before distribution; this project does not claim to be an approved YouTube API client.
+

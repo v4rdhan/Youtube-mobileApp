@@ -2,8 +2,11 @@ package app.streamshield
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
@@ -25,6 +28,7 @@ import android.widget.ScrollView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -47,12 +51,13 @@ import com.google.android.material.textview.MaterialTextView
 import java.io.ByteArrayInputStream
 import java.text.DateFormat
 import java.util.Date
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     private lateinit var root: LinearLayout
     private lateinit var toolbar: MaterialToolbar
     private lateinit var progress: LinearProgressIndicator
-    private lateinit var web: WebView
+    private lateinit var web: PlaybackWebView
     private lateinit var nativeScreen: FrameLayout
     private lateinit var navigation: BottomNavigationView
     private lateinit var protection: ProtectionManager
@@ -61,6 +66,16 @@ class MainActivity : AppCompatActivity() {
     private var fullscreen: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
     private var documentScript: ScriptHandler? = null
+    private val playerScript by lazy { assets.open("youtube-player.js").bufferedReader().use { it.readText() } }
+    private val backgroundScript by lazy { assets.open("background-playback.js").bufferedReader().use { it.readText() } }
+    private var backgroundPlaybackSupported = false
+    private var playbackActive = false
+    private var resumed = false
+    private val playbackReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == PlaybackService.ACTION_PAUSE) pauseMedia()
+        }
+    }
     @Volatile private var pageUrl = YouTubeUrls.HOME
     private var pageTitle = ""
     private var pendingUrl = YouTubeUrls.HOME
@@ -103,6 +118,7 @@ class MainActivity : AppCompatActivity() {
         }
         onBackPressedDispatcher.addCallback(this, backHandler)
         configureWebView()
+        ContextCompat.registerReceiver(this, playbackReceiver, IntentFilter(PlaybackService.ACTION_PAUSE), ContextCompat.RECEIVER_NOT_EXPORTED)
         toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
         navigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -147,6 +163,16 @@ class MainActivity : AppCompatActivity() {
         }
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, false)
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            backgroundPlaybackSupported = true
+            WebViewCompat.addWebMessageListener(web, "StreamShieldMedia",
+                setOf("https://youtube.com", "https://www.youtube.com", "https://m.youtube.com")) { _, message, origin, mainFrame, _ ->
+                if (mainFrame && YouTubeUrls.isYouTube(origin.toString()) && !isDestroyed && !rendererGone) {
+                    val state = runCatching { JSONObject(message.data.orEmpty()) }.getOrNull()
+                    if (state != null) updatePlayback(state.optBoolean("playing"), state.optString("title"))
+                }
+            }
+        }
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (!request.isForMainFrame) return false
@@ -165,6 +191,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                stopBackgroundPlayback()
                 pageUrl = url ?: YouTubeUrls.HOME
                 errorVisible = false
                 if (screen == Screen.BROWSER) nativeScreen.isVisible = false
@@ -194,6 +221,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                stopBackgroundPlayback()
                 rendererGone = true
                 (view.parent as? ViewGroup)?.removeView(view)
                 view.destroy()
@@ -252,17 +280,23 @@ class MainActivity : AppCompatActivity() {
         })();
     """.trimIndent()
 
+    private fun pageScript(selectors: String): String {
+        val player = if (protection.enabled && protection.ready) playerScript else ""
+        val background = if (backgroundPlaybackSupported) backgroundScript else ""
+        return background + "\n" + player + "\n" + cssScript(selectors)
+    }
+
     private fun refreshDocumentScript() {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) documentScript?.remove()
         documentScript = null
         if (!rendererGone && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             documentScript = WebViewCompat.addDocumentStartJavaScript(web,
-                cssScript(protection.selectors(YouTubeUrls.HOME)), setOf("https://*.youtube.com", "https://youtube.com"))
+                pageScript(protection.selectors(YouTubeUrls.HOME)), setOf("https://*.youtube.com", "https://youtube.com"))
         }
     }
 
     private fun injectCosmetics() {
-        if (!rendererGone && YouTubeUrls.isYouTube(pageUrl)) web.evaluateJavascript(cssScript(protection.selectors(pageUrl)), null)
+        if (!rendererGone && YouTubeUrls.isYouTube(pageUrl)) web.evaluateJavascript(pageScript(protection.selectors(pageUrl)), null)
     }
 
     private fun navigate(url: String) {
@@ -285,8 +319,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun nativePage(title: Int, target: Screen): LinearLayout {
         screen = target
+        pauseMedia()
         if (!rendererGone) {
-            web.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(v){v.pause()})", null)
             web.onPause()
         }
         web.isVisible = false
@@ -523,15 +557,43 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); incomingUrl(intent)?.let(::navigate) }
     override fun onSaveInstanceState(outState: Bundle) { outState.putString("url", pendingUrl.takeIf { !engineStarted } ?: pageUrl); super.onSaveInstanceState(outState) }
     override fun onPause() {
-        if (!rendererGone) {
-            web.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(v){v.pause()})", null)
+        resumed = false
+        if (!rendererGone && (!backgroundPlaybackSupported || screen != Screen.BROWSER)) {
+            pauseMedia()
             web.onPause()
         }
         CookieManager.getInstance().flush()
         super.onPause()
     }
-    override fun onResume() { super.onResume(); if (::web.isInitialized && screen == Screen.BROWSER && !rendererGone) web.onResume() }
+    override fun onResume() { super.onResume(); resumed = true; if (::web.isInitialized && screen == Screen.BROWSER && !rendererGone) web.onResume() }
+
+    private fun updatePlayback(playing: Boolean, title: String) {
+        if (!playing || screen != Screen.BROWSER) { stopBackgroundPlayback(); return }
+        if (playbackActive || !resumed) return
+        try {
+            ContextCompat.startForegroundService(this, Intent(this, PlaybackService::class.java)
+                .putExtra(PlaybackService.EXTRA_TITLE, title.take(256)))
+            playbackActive = true
+            web.keepMediaAlive = true
+        } catch (_: IllegalStateException) {
+            // A delayed page event must not start a service after the app has left the foreground.
+            pauseMedia()
+        }
+    }
+
+    private fun stopBackgroundPlayback() {
+        playbackActive = false
+        if (!rendererGone) web.keepMediaAlive = false
+        stopService(Intent(this, PlaybackService::class.java))
+    }
+
+    private fun pauseMedia() {
+        stopBackgroundPlayback()
+        if (!rendererGone) web.evaluateJavascript("document.querySelectorAll('video,audio').forEach(function(v){v.pause()})", null)
+    }
     override fun onDestroy() {
+        stopBackgroundPlayback()
+        unregisterReceiver(playbackReceiver)
         leaveFullscreen()
         if (!rendererGone && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) documentScript?.remove()
         protection.close()

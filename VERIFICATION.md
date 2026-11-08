@@ -1,5 +1,26 @@
 # Verification
 
+Screen-off playback verified on 8 November 2026 on the Android 15/API 35 emulator:
+
+- Debug and optimized unsigned release APKs built; all 5 Kotlin unit tests and all 7 device tests passed. Android lint: 0 errors, 14 existing warnings.
+- Separate offline audio and VP8/Opus video fixtures kept advancing while `PowerManager.isInteractive` was false. The video fixture exercises WebView's window-visibility handling as well as the page visibility handler.
+- Notification Pause and media-session Pause both paused playback and removed the service notification. Both focused playback tests passed again after adding the media-session command check.
+- Live Big Buck Bunny (`aqz-KE-bpKQ`) stayed unmuted and playing with the screen off: time advanced from 6.705 to 88.571 seconds, readyState 4, device wakefulness `Asleep`, and the media foreground service and partial wake lock active.
+- An initial audio-only test passed while live video stopped; `PlaybackWebView` now preserves window visibility during active playback, and the added real-video fixture covers that regression.
+- An installable debug build is also available as `app/build/outputs/apk/debug/StreamShield-v0.1.3-debug.apk`; release signing and versioned release downloads remain handled by GitHub Actions.
+
+Playback ends on pause, native panel navigation, renderer loss, task removal, or activity destruction. These checks do not establish behavior on every physical device or under manufacturer battery restrictions.
+
+Player ad-data filtering verified on 8 November 2026 using the Android 15/API 35 emulator:
+
+- 12 Node regression tests passed: initial data, subsequent assignments, parsed JSON, serialized player configs, fetch JSON/text, XHR, unrelated responses, invalid JSON, repeated injection, and preserved video/access data.
+- All 5 Kotlin unit tests and all 5 Android instrumentation tests passed. The new WebView fixture confirms ad fields are removed before the first inline read on a document-start-capable WebView, and that Protection off/on disables and restores the filter across reloads.
+- The first device-suite attempt timed out in the existing navigation startup test; the subsequent full run passed all five tests.
+- Android lint: 0 errors, 14 warnings. Debug APK rebuilt at `app/build/outputs/apk/debug/app-debug.apk`.
+- Live Big Buck Bunny (`aqz-KE-bpKQ`) playback with protection enabled: player status `OK`, no known player ad fields, no visible ad state, video time advanced from 11.948 to 41.546 seconds with readyState 4 and decoded width 640.
+
+These checks cover known player-data formats and one live public video. They do not establish that every startup ad is removed; older WebViews and ads embedded in streams remain limitations.
+
 Navigation update verified on 8 November 2026 on the Android 15/API 35 phone emulator:
 
 - Debug APK built; 5 Kotlin unit tests and all 4 device instrumentation tests passed. Android lint: 0 errors, 14 warnings.

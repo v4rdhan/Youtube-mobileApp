@@ -12,7 +12,7 @@
         android:indeterminate="true" app:trackThickness="2dp" />
     <FrameLayout android:id="@+id/content" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1">
-        <WebView android:id="@+id/webview" android:layout_width="match_parent" android:layout_height="match_parent" />
+        <app.streamshield.PlaybackWebView android:id="@+id/webview" android:layout_width="match_parent" android:layout_height="match_parent" />
         <FrameLayout android:id="@+id/native_screen" android:layout_width="match_parent" android:layout_height="match_parent"
             android:background="?attr/colorSurface" android:visibility="gone" />
     </FrameLayout>

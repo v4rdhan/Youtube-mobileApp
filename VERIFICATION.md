@@ -1,5 +1,17 @@
 # Verification
 
+Navigation update verified on 8 November 2026 on the Android 15/API 35 phone emulator:
+
+- Debug APK built; 5 Kotlin unit tests and all 4 device instrumentation tests passed. Android lint: 0 errors, 14 warnings.
+- Browsing has no native logo toolbar or search field. YouTube's search submitted `android` and loaded live results.
+- One native bottom bar remains. The site's `ytm-pivot-bar-renderer` computed display is `none`, and `ytm-app` bottom padding is `0px`, with protection enabled and disabled.
+- Protection and More preserve the selected destination; Back from Protection returns to Saved when opened there. The More menu remains accessible.
+- Phone screenshots inspected at normal and 1.3 font scale; font scale restored to 1.0 and protection re-enabled after the check.
+
+Updated captures: `.impeccable/review/phone-navigation.png`, `phone-youtube-search.png`, and `phone-navigation-large-text.png`.
+
+The earlier verification below describes the original interface and playback checks.
+
 Verified on 7 November 2026 using JDK 17, Android SDK 36, NDK 27.1.12297006, Gradle 8.14.3, and Rust 1.98. Android device checks used an isolated Android 15/API 35 x86_64 emulator, 1080×2400, density 420, with system WebView 124.0.6367.219.
 
 | Check | Result |

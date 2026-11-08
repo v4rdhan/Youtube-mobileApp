@@ -2,4 +2,6 @@
     <item android:id="@+id/nav_home" android:icon="@drawable/ic_home" android:title="@string/home" />
     <item android:id="@+id/nav_shorts" android:icon="@drawable/ic_shorts" android:title="@string/shorts" />
     <item android:id="@+id/nav_saved" android:icon="@drawable/ic_bookmark" android:title="@string/saved" />
+    <item android:id="@+id/action_protection" android:icon="@drawable/ic_shield" android:title="@string/settings" android:checkable="false" />
+    <item android:id="@+id/action_more" android:icon="@drawable/ic_more" android:title="@string/more_short" android:contentDescription="@string/more" android:checkable="false" />
 </menu>

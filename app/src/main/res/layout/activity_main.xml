@@ -5,20 +5,8 @@
     android:orientation="vertical">
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:minHeight="64dp" app:title="@string/app_name" app:logo="@drawable/ic_shield"
-        app:logoDescription="@string/app_name" app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-        app:menu="@menu/toolbar" />
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/search_layout" style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp" android:layout_marginBottom="8dp"
-        android:hint="@string/search_hint" app:endIconMode="custom"
-        app:endIconDrawable="@drawable/ic_search" app:endIconContentDescription="@string/search">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/search" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:singleLine="true" android:inputType="text" android:imeOptions="actionSearch"
-            android:maxLength="2048" />
-    </com.google.android.material.textfield.TextInputLayout>
+        android:minHeight="64dp" android:visibility="gone"
+        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progress" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:indeterminate="true" app:trackThickness="2dp" />
@@ -30,5 +18,6 @@
     </FrameLayout>
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navigation" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:background="?attr/colorSurface" app:menu="@menu/navigation" app:labelVisibilityMode="labeled" />
+        android:background="?attr/colorSurface" app:menu="@menu/navigation"
+        app:itemHorizontalTranslationEnabled="false" app:labelVisibilityMode="labeled" />
 </LinearLayout>

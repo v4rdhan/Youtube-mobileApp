@@ -20,7 +20,7 @@ The user requests all YouTube videos and ad blocking. Universal playback and rem
 
 ## Open Decisions and Assumptions
 
-The user confirmed “Browse and play YouTube with ad blocking” as the first version's priority. StreamShield and the dark interface were proposed in that question and are provisional implementation choices. Native search, fullscreen playback, local saved videos, and filter settings support that workflow. Google sign-in in embedded browsers may be unavailable.
+The user confirmed “Browse and play YouTube with ad blocking” as the first version's priority. StreamShield and the dark interface were proposed in that question and are provisional implementation choices. YouTube's own search, fullscreen playback, local saved videos, and filter settings support that workflow. The user requested removal of the native browsing header and search field, with a separate native bottom navigation bar. Google sign-in in embedded browsers may be unavailable.
 
 ## Evidence on Hand
 

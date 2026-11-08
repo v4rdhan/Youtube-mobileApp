@@ -27,7 +27,6 @@ typography:
 spacing:
   body-inset: "8dp"
   control-gap: "12dp"
-  search-gutter: "16dp"
   page-top: "20dp"
   page-gutter: "24dp"
   section-gap: "28dp"
@@ -106,9 +105,9 @@ Buttons use sentence case. Saved titles align to the start and wrap to at most t
 
 ## Layout
 
-The phone shell is one vertical column: toolbar with minimum height (64dp), outlined search, loading indicator (2dp track), flexible content area, and labeled bottom navigation. Search has horizontal gutters (16dp) and a bottom gap (8dp). System bars, cutouts, and the keyboard contribute root padding.
+The phone browsing shell is one vertical column: loading indicator (2dp track), flexible YouTube content area, and labeled bottom navigation. YouTube owns the header and search; there is no native browsing logo, toolbar, or search field. The site's duplicate bottom navigation is hidden by layout CSS independently of protection. System bars, cutouts, and the keyboard contribute root padding.
 
-Protection and Saved replace the content area with a native scroll view and hide search. Page padding is top (20dp), horizontal (24dp), and bottom (32dp). Related controls use top gaps (12dp); new sections use larger gaps (28dp). Body paragraphs have vertical inset (8dp). Protection hides bottom navigation; Saved retains it. Native pages have a toolbar back arrow.
+Protection and Saved replace the content area with a native scroll view. Page padding is top (20dp), horizontal (24dp), and bottom (32dp). Related controls use top gaps (12dp); new sections use larger gaps (28dp). Body paragraphs have vertical inset (8dp). Protection hides bottom navigation; Saved retains it. Native pages have a title toolbar (minimum height 64dp) and back arrow, without a logo.
 
 Saved rows pair a flexible outlined title button with a remove icon button (56dp square), separated by a gap (8dp). The title button has minimum height (64dp). General filled actions have minimum height (48dp); the protection switch row has minimum height (64dp).
 
@@ -130,13 +129,13 @@ Filled Material buttons carry filter updates, custom-rule application, and retry
 
 ### Inputs / Fields
 
-Search is a single-line outlined Material field with an end search icon and keyboard Search action. It accepts a search term or YouTube link. Invalid input appears through the native field error presentation.
+Search uses YouTube's own header control and search interface inside the WebView. Shared YouTube links still open directly in the app.
 
 Custom rules use a multiline outlined field with three to eight visible lines. Oversized input uses the field error mechanism. Focus and error treatments remain inherited from Material.
 
 ### Navigation
 
-Home, Shorts, and Saved form the labeled Material bottom navigation. Selected items use a tonal icon indicator and stronger label treatment. The toolbar carries the shield identity, Protection action, and overflow menu. Native pages add a back arrow and change the title. The Protection action is primary green when protection is enabled and ready, and muted otherwise.
+Home, Shorts, and Saved form the destinations in the labeled Material bottom navigation. Protection and More provide access to settings and page actions from that same bar; opening either preserves the selected destination. Selected destinations use a tonal icon indicator and stronger label treatment. Native pages show a title and back arrow. The Protection action has an accessibility description reflecting its current state. More contains Save this video, Reload page, Share video, and Open in browser.
 
 ### Protection controls and feedback
 

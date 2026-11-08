@@ -6,6 +6,7 @@ A Kotlin Android app for browsing and playing YouTube's live mobile site, with t
 
 - Live YouTube browsing, search, Shorts, and playback in Android WebView. No API key or separate backend.
 - Native dark Material 3 interface, fullscreen video, Android Back handling, and shared YouTube links.
+- YouTube's own header and search, with a separate native bottom bar for Home, Shorts, Saved, Protection, and More. The site's duplicate bottom navigation is hidden even when protection is off.
 - Rust request filtering and site-specific cosmetic CSS rules. Video URLs and streams are left to WebView; there is no stream extraction service.
 - Protection switch and an actual blocked-request count for the current app session.
 - Built-in starter rules; optional EasyList and EasyPrivacy downloads from Protection → Update filter lists.

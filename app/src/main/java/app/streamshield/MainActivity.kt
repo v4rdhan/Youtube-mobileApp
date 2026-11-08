@@ -7,11 +7,9 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.view.inputmethod.EditorInfo
 import android.webkit.CookieManager
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
@@ -53,8 +51,6 @@ import java.util.Date
 class MainActivity : AppCompatActivity() {
     private lateinit var root: LinearLayout
     private lateinit var toolbar: MaterialToolbar
-    private lateinit var searchLayout: TextInputLayout
-    private lateinit var search: TextInputEditText
     private lateinit var progress: LinearProgressIndicator
     private lateinit var web: WebView
     private lateinit var nativeScreen: FrameLayout
@@ -92,8 +88,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         root = findViewById(R.id.root)
         toolbar = findViewById(R.id.toolbar)
-        searchLayout = findViewById(R.id.search_layout)
-        search = findViewById(R.id.search)
         progress = findViewById(R.id.progress)
         web = findViewById(R.id.webview)
         nativeScreen = findViewById(R.id.native_screen)
@@ -109,17 +103,17 @@ class MainActivity : AppCompatActivity() {
         }
         onBackPressedDispatcher.addCallback(this, backHandler)
         configureWebView()
-        toolbar.setOnMenuItemClickListener(::toolbarAction)
         toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
-        searchLayout.setEndIconOnClickListener { performSearch() }
-        search.setOnEditorActionListener { _, action, _ ->
-            if (action == EditorInfo.IME_ACTION_SEARCH) { performSearch(); true } else false
-        }
         navigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> navigate(YouTubeUrls.HOME)
                 R.id.nav_shorts -> navigate(YouTubeUrls.SHORTS)
                 R.id.nav_saved -> showSaved()
+                R.id.action_protection -> { showSettings(); return@setOnItemSelectedListener false }
+                R.id.action_more -> {
+                    showMore(navigation.findViewById(R.id.action_more))
+                    return@setOnItemSelectedListener false
+                }
             }
             true
         }
@@ -244,6 +238,10 @@ class MainActivity : AppCompatActivity() {
         (function() {
           const selectors = $selectors;
           function apply() {
+            // The native navigation owns the bottom edge, even with protection off.
+            let layout = document.getElementById('streamshield-layout');
+            if (!layout) { layout = document.createElement('style'); layout.id = 'streamshield-layout'; document.documentElement.appendChild(layout); }
+            layout.textContent = 'ytm-pivot-bar-renderer { display: none !important; } ytm-app { padding-bottom: 0 !important; }';
             let style = document.getElementById('streamshield-cosmetics');
             if (!style) { style = document.createElement('style'); style.id = 'streamshield-cosmetics'; document.documentElement.appendChild(style); }
             style.textContent = '';
@@ -257,7 +255,7 @@ class MainActivity : AppCompatActivity() {
     private fun refreshDocumentScript() {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) documentScript?.remove()
         documentScript = null
-        if (protection.enabled && protection.ready && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+        if (!rendererGone && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             documentScript = WebViewCompat.addDocumentStartJavaScript(web,
                 cssScript(protection.selectors(YouTubeUrls.HOME)), setOf("https://*.youtube.com", "https://youtube.com"))
         }
@@ -265,15 +263,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun injectCosmetics() {
         if (!rendererGone && YouTubeUrls.isYouTube(pageUrl)) web.evaluateJavascript(cssScript(protection.selectors(pageUrl)), null)
-    }
-
-    private fun performSearch() {
-        val url = YouTubeUrls.searchOrUrl(search.text?.toString().orEmpty())
-        if (url == null) { searchLayout.error = getString(R.string.invalid_url); return }
-        searchLayout.error = null
-        search.clearFocus()
-        WindowInsetsControllerCompat(window, root).hide(WindowInsetsCompat.Type.ime())
-        navigate(url)
     }
 
     private fun navigate(url: String) {
@@ -285,9 +274,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBrowser() {
         screen = Screen.BROWSER
-        toolbar.title = getString(R.string.app_name)
-        toolbar.navigationIcon = null
-        searchLayout.isVisible = true
+        toolbar.isVisible = false
         navigation.isVisible = true
         nativeScreen.isVisible = errorVisible || !engineStarted
         web.isVisible = true
@@ -303,9 +290,9 @@ class MainActivity : AppCompatActivity() {
             web.onPause()
         }
         web.isVisible = false
-        searchLayout.isVisible = false
         progress.isVisible = false
         navigation.isVisible = target == Screen.SAVED
+        toolbar.isVisible = true
         toolbar.setTitle(title)
         toolbar.setNavigationIcon(R.drawable.ic_back)
         toolbar.navigationContentDescription = getString(androidx.appcompat.R.string.abc_action_bar_up_description)
@@ -428,38 +415,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun toolbarAction(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_protection -> showSettings()
-            R.id.action_more -> {
-                val popup = PopupMenu(this, toolbar.findViewById(R.id.action_more))
-                popup.menu.add(0, 1, 0, R.string.save_video)
-                popup.menu.add(0, 2, 1, R.string.reload)
-                popup.menu.add(0, 3, 2, R.string.share)
-                popup.menu.add(0, 4, 3, R.string.open_browser)
-                popup.setOnMenuItemClickListener { choice ->
-                    when (choice.itemId) {
-                        1 -> message(if (savedVideos.add(pageTitle, pageUrl)) R.string.saved_feedback else R.string.save_first)
-                        2 -> { hideError(); if (rendererGone) recreate() else if (engineStarted) web.reload() }
-                        3 -> startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"; putExtra(Intent.EXTRA_TEXT, pageUrl)
-                        }, getString(R.string.share)))
-                        4 -> openExternal(pageUrl)
-                    }
-                    true
-                }
-                popup.show()
+    private fun showMore(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(0, 1, 0, R.string.save_video)
+        popup.menu.add(0, 2, 1, R.string.reload)
+        popup.menu.add(0, 3, 2, R.string.share)
+        popup.menu.add(0, 4, 3, R.string.open_browser)
+        popup.setOnMenuItemClickListener { choice ->
+            when (choice.itemId) {
+                1 -> message(if (savedVideos.add(pageTitle, pageUrl)) R.string.saved_feedback else R.string.save_first)
+                2 -> { hideError(); if (rendererGone) recreate() else if (engineStarted) web.reload() }
+                3 -> startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"; putExtra(Intent.EXTRA_TEXT, pageUrl)
+                }, getString(R.string.share)))
+                4 -> openExternal(pageUrl)
             }
-            else -> return false
+            true
         }
-        return true
+        popup.show()
     }
 
     private fun updateProtectionIcon() {
-        val menu = toolbar.menu.findItem(R.id.action_protection)
+        val menu = navigation.menu.findItem(R.id.action_protection)
         menu.icon?.mutate()?.setTint(color(if (protection.enabled && protection.ready)
             androidx.appcompat.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant))
-        menu.title = getString(if (protection.enabled && protection.ready) R.string.protection_on else R.string.protection_off)
+        menu.contentDescription = getString(if (protection.enabled && protection.ready) R.string.protection_on else R.string.protection_off)
     }
 
     private fun openExternal(url: String) {

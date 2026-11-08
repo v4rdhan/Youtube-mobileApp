@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">StreamShield</string>
-    <string name="search_hint">Search YouTube or paste a link</string>
     <string name="home">Home</string>
     <string name="shorts">Shorts</string>
     <string name="saved">Saved</string>
@@ -10,6 +9,7 @@
     <string name="share">Share video</string>
     <string name="open_browser">Open in browser</string>
     <string name="more">More options</string>
+    <string name="more_short">More</string>
     <string name="starting">Preparing protection…</string>
     <string name="retry">Try again</string>
     <string name="connection_error">YouTube could not load</string>
@@ -49,8 +49,6 @@
     <string name="save_first">Open a video to save it</string>
     <string name="remove_saved">Remove saved video</string>
     <string name="removed">Video removed</string>
-    <string name="search">Search</string>
-    <string name="invalid_url">Enter a YouTube link or a search term</string>
     <string name="engine_error_detail">The native engine could not start. Browsing is available with protection off.</string>
     <string name="licenses">Open-source notices</string>
     <string name="licenses_detail">adblock-rust and StreamShield: MPL-2.0. EasyList and EasyPrivacy are downloaded only when requested; their source and license notices are retained in each list. See the project’s THIRD_PARTY_NOTICES.md for details.</string>

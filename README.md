@@ -55,6 +55,8 @@ You can also open this folder in Android Studio. Releases from GitHub Actions ar
 
 ## CI and releases
 
+Both CI workflows install Android SDK packages through `scripts/install-android-sdk.py`. Each package gets up to three attempts, with a short delay and SDK temporary-download cleanup between failures. This allows a corrupt or interrupted NDK download (`Error on ZipFile unknown archive`) to be downloaded again; persistent installation errors still fail the job.
+
 GitHub Actions runs unit tests, Android lint, and Rust tests for non-`main` pushes and pull requests targeting `main`. When a pull request is merged into `main`, the release workflow increments `versionCode` and the patch portion of `versionName`, builds and signs the release APK, commits the version bump, creates a matching `v<versionName>` tag, and publishes the APK with a SHA-256 checksum in a GitHub Release. The workflow needs `contents: write` permission and permission to push version commits to `main`; branch protection rules may need to allow GitHub Actions to do so.
 
 Before the first release, add these repository secrets under **Settings → Secrets and variables → Actions**:
@@ -93,6 +95,6 @@ Source archive SHA-256: `B94FD587287A402C544235D2FA3CFD50371D65C857AAF7F7AA97940
 
 YouTube receives browser traffic and cookies as it does in a browser. Optional list updates contact easylist.to. Saved links, preferences, and filter caches stay in private app storage. There is no app analytics backend; app backups and device transfers are excluded. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LICENSE](LICENSE).
 
-Independent project; not affiliated with YouTube, Google, or Brave. If you redistribute an APK, make its corresponding MPL-covered source available to recipients and retain the notices. Review YouTube's current terms before distribution; this project does not claim to be an approved YouTube API client.
+Independent project; not affiliated with YouTube, Google, or Brave. If you redistribute an APK, make its corresponding MPL-covered source available to recipients and retain the notices. Review YouTube's current terms before distribution; this project does not claim to be an approved YouTube API client. 
 
 

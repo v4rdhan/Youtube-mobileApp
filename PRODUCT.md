@@ -14,6 +14,8 @@ Kotlin, requested by the user. Android Views with Material components; Rust thro
 
 Browse and play YouTube videos on Android with request filtering powered by the supplied engine.
 
+Audio should continue when the screen is off. Playback uses a media foreground service with a notification Pause action and ends when the user pauses or closes the app task.
+
 ## Capabilities and Constraints
 
 The user requests all YouTube videos and ad blocking. Universal playback and removal of every advertisement cannot be guaranteed: availability, access restrictions, WebView limitations, and changes to YouTube remain outside the app's control. No YouTube API credentials were supplied. The implementation uses the live mobile site.

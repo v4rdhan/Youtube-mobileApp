@@ -6,8 +6,10 @@ A Kotlin Android app for browsing and playing YouTube's live mobile site, with t
 
 - Live YouTube browsing, search, Shorts, and playback in Android WebView. No API key or separate backend.
 - Native dark Material 3 interface, fullscreen video, Android Back handling, and shared YouTube links.
+- Audio continues with the screen off or another app open. Active playback has a media notification with a Pause action; pausing, opening a native app panel, or closing the app task ends background playback.
 - YouTube's own header and search, with a separate native bottom bar for Home, Shorts, Saved, Protection, and More. The site's duplicate bottom navigation is hidden even when protection is off.
 - Rust request filtering and site-specific cosmetic CSS rules. Video URLs and streams are left to WebView; there is no stream extraction service.
+- YouTube player-data filtering removes known ad fields from initial playback data and subsequent player responses while protection is enabled.
 - Protection switch and an actual blocked-request count for the current app session.
 - Built-in starter rules; optional EasyList and EasyPrivacy downloads from Protection → Update filter lists.
 - Custom Adblock Plus rules and local saved video links, with removal.
@@ -17,9 +19,9 @@ A Kotlin Android app for browsing and playing YouTube's live mobile site, with t
 
 This is a working browser-based Android client, not a guarantee that every YouTube video plays or every advertisement disappears. Private, paid, age-restricted, region-restricted, DRM-protected, removed, or otherwise unavailable content remains subject to YouTube's controls. Google may reject sign-in through embedded browsers. Opening a link in the external browser uses that browser's own session.
 
-The supplied engine performs filter matching; it is not the complete Brave browser. This integration implements network blocking and site-specific CSS hiding. It does **not** implement scriptlet resources, procedural cosmetics, generic class/id cosmetics, redirect resources, or URL rewriting. WebView does not expose every kind of request (including WebSockets and service-worker traffic) to this interception hook. Ads delivered from the same stream or through player data can remain. Updating EasyList does not add the missing browser capabilities.
+The supplied engine performs filter matching; it is not the complete Brave browser. This integration implements network blocking, site-specific CSS hiding, and a separate YouTube player-data filter. The player filter removes known `adPlacements`, `playerAds`, and `adSlots` fields from initial data, parsed JSON, and player fetch/XHR responses, including navigation between videos. It runs before page scripts on WebViews supporting document-start injection; older WebViews use a late fallback that can miss startup ads. It does **not** implement general filter-list scriptlets, procedural cosmetics, generic class/id cosmetics, redirect resources, or URL rewriting. WebView does not expose every kind of request (including WebSockets and service-worker traffic) to this interception hook. Ads embedded in video streams or delivered through unrecognized player formats can remain. Updating EasyList does not add the missing browser capabilities.
 
-Fullscreen follows YouTube's own video controls. There is no background playback, download feature, account/password collection, or bypass of video access restrictions. The native shell is designed for phones. YouTube's site and DOM can change independently of this app.
+Fullscreen follows YouTube's own video controls. Screen-off audio uses a media foreground service and a CPU wake lock only while audible media is playing; start and unmute a video before locking the phone. It requires a WebView with secure web-message listener support, works independently of the ad-protection switch, and stops when the app task closes. Android or device battery controls can still end the process. There is no download feature, account/password collection, or bypass of video access restrictions. The native shell is designed for phones. YouTube's site and DOM can change independently of this app.
 
 ## Build
 
@@ -68,9 +70,14 @@ Before the first release, add these repository secrets under **Settings → Secr
 
 Keep a secure backup of the keystore and passwords. The same signing key is needed for future APK updates. The workflow verifies the APK signature before publishing and removes the temporary keystore from the runner afterward.
 
+Release downloads use the app name and release version: `StreamShield-v<versionName>.apk` and `StreamShield-v<versionName>.apk.sha256` (for example, `StreamShield-v0.1.4.apk`). The filename automatically follows each release's version.
+
 ## Verify
 
+The player-filter regression tests use Node.js 22 or newer and run without contacting YouTube.
+
 ```powershell
+node --test scripts/tests/youtube-player.test.mjs
 .\gradlew.bat testDebugUnitTest lintDebug
 cargo test --locked --manifest-path native/Cargo.toml
 .\gradlew.bat connectedDebugAndroidTest
@@ -83,11 +90,15 @@ For Rust host tests on Windows without Visual C++ use `cargo +1.98-x86_64-pc-win
 | Location | Purpose |
 | --- | --- |
 | `app/src/main/java/app/streamshield/MainActivity.kt` | Native UI, WebView, fullscreen, navigation |
+| `app/src/main/java/app/streamshield/PlaybackService.kt` | Screen-off playback service, media notification, wake lock |
+| `app/src/main/java/app/streamshield/PlaybackWebView.kt` | Keeps active video media running when the window is hidden |
 | `app/src/main/java/app/streamshield/blocking/` | Rule updates, request classification, JNI declarations |
 | `native/src/lib.rs` | Thread-safe Rust/JNI bridge |
 | `vendor/adblock-rust-master/` | Unmodified source extracted from the supplied ZIP |
 | `scripts/build-native.ps1` and `.sh` | NDK cross-compilation |
 | `app/src/main/assets/filters/starter.txt` | Small, shipped network and cosmetic rule set |
+| `app/src/main/assets/youtube-player.js` | YouTube player-data filtering, enabled by the Protection switch |
+| `app/src/main/assets/background-playback.js` | Playback-state reporting and visibility handling for screen-off audio |
 
 Source archive SHA-256: `B94FD587287A402C544235D2FA3CFD50371D65C857AAF7F7AA979405FF0FC9BA`.
 

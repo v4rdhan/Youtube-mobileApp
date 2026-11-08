@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">StreamShield</string>
+    <string name="playback_channel">Media playback</string>
+    <string name="screen_off_playback">Audio keeps playing with the screen off</string>
+    <string name="pause_playback">Pause</string>
     <string name="home">Home</string>
     <string name="shorts">Shorts</string>
     <string name="saved">Saved</string>
@@ -40,7 +43,7 @@
     <string name="rules_too_large">Custom rules must be smaller than 256 KB.</string>
     <string name="playback_note">About playback</string>
     <string name="playback_detail">YouTube plays through Android WebView. Some ads may remain, including ads delivered with video. Private, paid, age-restricted, or region-restricted videos follow YouTube’s access rules. Google sign-in may be unavailable in embedded browsers.</string>
-    <string name="limits_detail">This version supports network blocking and site-specific CSS hiding. Scriptlets, procedural filters, redirect resources, and browser-extension request coverage are not implemented.</string>
+    <string name="limits_detail">Protection filters network requests, hides ad elements, and removes known YouTube player ad data. Older WebViews may miss startup ads; keep Android System WebView updated. General filter-list scriptlets, procedural filters, redirect resources, and browser-extension request coverage are not implemented.</string>
     <string name="independent">Independent app. Not affiliated with YouTube, Google, or Brave.</string>
     <string name="saved_title">Your saved videos</string>
     <string name="saved_empty">Keep something for later</string>

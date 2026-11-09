@@ -1,5 +1,15 @@
 # Verification
 
+Startup-ad recovery checked on 9 November 2026 on the Android 15/API 35 emulator with WebView 124.0.6367.219:
+
+- All 25 Node player regression tests, 5 Kotlin unit tests, and 8 Android instrumentation tests passed. Android lint: 0 errors, 9 warnings.
+- Debug and optimized unsigned release APKs built successfully; release signing remains handled by GitHub Actions.
+- Regression cases cover prefetched navigation responses, visible/disabled Skip controls, consecutive finite ads, blocked ads without metadata, a single bounded player retry, retained content position, and normal buffering that must not trigger recovery.
+- WebView fixtures confirm that an existing ad state exits through Skip or a bounded player retry with Protection enabled; both remain untouched with Protection disabled.
+- Live Big Buck Bunny (`aqz-KE-bpKQ`) played with Protection enabled, readyState 4, no visible ad state, and time advancing from 2.138 to 32.615 seconds. Clicking a related video (`vE57fPUAQh0`) navigated to the correct video and playback advanced to 0.888 seconds with readyState 4 and no visible ad state.
+
+The reported v0.1.5 failure on Android 16 has not been reproduced on that device. These checks validate the recovery paths and sampled playback, not universal ad removal or zero network buffering. Android 16 phone verification is still required.
+
 Screen-off playback verified on 8 November 2026 on the Android 15/API 35 emulator:
 
 - Debug and optimized unsigned release APKs built; all 5 Kotlin unit tests and all 7 device tests passed. Android lint: 0 errors, 14 existing warnings.

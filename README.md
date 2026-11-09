@@ -10,6 +10,7 @@ A Kotlin Android app for browsing and playing YouTube's live mobile site, with t
 - YouTube's own header and search, with a separate native bottom bar for Home, Shorts, Saved, Protection, and More. The site's duplicate bottom navigation is hidden even when protection is off.
 - Rust request filtering and site-specific cosmetic CSS rules. Video URLs and streams are left to WebView; there is no stream extraction service.
 - YouTube player-data filtering removes known ad fields from initial playback data and subsequent player responses while protection is enabled.
+- Protection also handles prefetched video responses and active player ads: it uses available Skip controls, ends finite ad clips, and makes one player retry if a confirmed ad is stuck buffering. Normal video buffering does not trigger a seek or reload.
 - Protection switch and an actual blocked-request count for the current app session.
 - Built-in starter rules; optional EasyList and EasyPrivacy downloads from Protection → Update filter lists.
 - Custom Adblock Plus rules and local saved video links, with removal.
@@ -56,6 +57,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 You can also open this folder in Android Studio. Releases from GitHub Actions are signed using a private release keystore stored as GitHub Actions secrets; the keystore is not included in the repository.
 
 ## CI and releases
+
+Both CI workflows prepare Gradle before running build tasks, with up to three attempts and 10/20-second retry delays for temporary download failures such as HTTP 504. The wrapper uses a 60-second network timeout and verifies the distribution against Gradle's published SHA-256 checksum. Persistent bootstrap failures still fail the job; build and test failures are not retried. To run the same preparation locally on Linux/macOS, use `bash scripts/prepare-gradle.sh`.
 
 Both CI workflows install Android SDK packages through `scripts/install-android-sdk.py`. Each package gets up to three attempts, with a short delay and SDK temporary-download cleanup between failures. This allows a corrupt or interrupted NDK download (`Error on ZipFile unknown archive`) to be downloaded again; persistent installation errors still fail the job.
 

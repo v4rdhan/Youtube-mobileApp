@@ -9,7 +9,8 @@
   const parse = JSON.parse;
   const stringify = JSON.stringify;
   const adKeys = ['adPlacements', 'playerAds', 'adSlots'];
-  const wrappers = ['playerResponse', 'response', 'args', 'PLAYER_VARS'];
+  const wrappers = ['playerResponse', 'response', 'args', 'PLAYER_VARS',
+    'endpoint', 'watchEndpoint', 'unserializedPrefetchData'];
 
   // Follow known player envelopes only; do not walk or rewrite stream metadata,
   // playability/access checks, captions, playlists, or arbitrary page objects.
@@ -78,7 +79,7 @@
     try {
       const url = new URL(address, location.href);
       return url.protocol === 'https:' && /(^|\.)youtube\.com$/.test(url.hostname) &&
-        (/^\/youtubei\/v\d+\/(player|next|reel\/reel_watch_sequence)\/?$/.test(url.pathname) ||
+        (/^\/youtubei\/v\d+\/(player|next|reel\/reel_watch_sequence|navigation\/resolve_url)\/?$/.test(url.pathname) ||
          /^\/(watch|playlist)\/?$/.test(url.pathname));
     } catch (_) { return false; }
   }
@@ -114,4 +115,116 @@
       });
     }
   }
+
+  // Data filtering cannot end an ad that the player already started (for
+  // example, before late injection). Only act on an explicit player ad state;
+  // a spinner or a stalled content video alone is never a reason to seek/reload.
+  if (typeof document === 'undefined' || window !== window.top) return;
+  let timer = null;
+  let route = '';
+  let adPlayer = null;
+  let adSince = 0;
+  let lastAction = 0;
+  let reloaded = false;
+  let contentTime = 0;
+  let skipped = new WeakSet();
+  let sought = new WeakMap();
+
+  function getPlayer() {
+    return document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+  }
+
+  function hasAd(player) {
+    return player && (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'));
+  }
+
+  function resetAd() {
+    adPlayer = null;
+    skipped = new WeakSet();
+    sought = new WeakMap();
+  }
+
+  function recoverAd() {
+    timer = null;
+    if (route !== location.href) {
+      route = location.href;
+      reloaded = false;
+      contentTime = 0;
+      resetAd();
+    }
+    const player = getPlayer();
+    if (!hasAd(player)) { resetAd(); return; }
+    const now = Date.now();
+    if (adPlayer !== player) {
+      resetAd();
+      adPlayer = player;
+      adSince = now;
+      lastAction = now;
+    }
+    // Poll only for the duration of an ad. Metadata and player APIs can become
+    // available without a DOM mutation, including when an ad request is blocked.
+    scheduleRecovery(250);
+    const skip = Array.from(player.querySelectorAll('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytp-ad-skip-button-container button'))
+      .find(button => !button.disabled && button.getAttribute('aria-disabled') !== 'true' &&
+        button.getClientRects().length && !skipped.has(button));
+    if (skip) {
+      skipped.add(skip);
+      try { skip.click(); lastAction = now; return; } catch (_) {}
+    }
+    const video = player.querySelector('video');
+    if (video && Number.isFinite(video.duration) && video.duration > 0) {
+      const source = video.currentSrc || video.src;
+      const previous = sought.get(video);
+      if (!previous || previous.source !== source || previous.duration !== video.duration) {
+        try {
+          // End this finite ad through the media element so YouTube advances to
+          // its content. Do not change playback rate, mute state, or content URLs.
+          video.currentTime = video.duration;
+          sought.set(video, { source, duration: video.duration });
+          lastAction = now;
+          return;
+        } catch (_) {}
+      }
+    }
+    // An ad with no usable media can otherwise buffer forever. Make one retry
+    // through YouTube's player, after allowing skip/ended handlers to run.
+    if (reloaded || now - adSince < 750 || now - lastAction < 750 ||
+        (video && video.readyState >= 2 && !video.error && !video.ended)) return;
+    try {
+      const url = new URL(location.href);
+      if (url.pathname !== '/watch') return;
+      const id = url.searchParams.get('v');
+      const response = typeof player.getPlayerResponse === 'function' ? player.getPlayerResponse() : window.ytInitialPlayerResponse;
+      if (!id || response?.videoDetails?.videoId !== id || response.videoDetails.isLive ||
+          response.playabilityStatus?.status !== 'OK' || !response.streamingData ||
+          typeof player.loadVideoById !== 'function') return;
+      clean(response);
+      const start = response.playerConfig?.playbackStartConfig?.startSeconds;
+      const timestamp = url.searchParams.get('t') || url.searchParams.get('start') || '';
+      const match = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s?)?$/.exec(timestamp);
+      const seconds = match ? Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0) : 0;
+      const position = contentTime || (Number.isFinite(start) && start >= 0 ? start : seconds);
+      reloaded = true;
+      player.loadVideoById(id, position);
+    } catch (_) { /* Site/player changes must not interrupt ordinary playback. */ }
+  }
+
+  function scheduleRecovery(delay = 0) {
+    if (timer === null) timer = setTimeout(recoverAd, delay);
+  }
+
+  document.addEventListener('timeupdate', function (event) {
+    const player = getPlayer();
+    if (route === location.href && player && !hasAd(player) &&
+        event.target === player.querySelector('video') && Number.isFinite(event.target.currentTime)) {
+      contentTime = event.target.currentTime;
+    }
+  }, true);
+  for (const event of ['loadedmetadata', 'durationchange', 'error', 'yt-navigate-finish']) {
+    document.addEventListener(event, () => scheduleRecovery(), true);
+  }
+  new MutationObserver(() => scheduleRecovery()).observe(document, {
+    childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled']
+  });
+  scheduleRecovery();
 })();

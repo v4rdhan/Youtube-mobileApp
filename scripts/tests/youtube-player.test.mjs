@@ -32,7 +32,7 @@ function createPage(host = 'm.youtube.com', initial = {}) {
     location: { protocol: 'https:', hostname: host, href: `https://${host}/watch?v=video-id` },
     URL, Response: PageResponse, XMLHttpRequest: PageXHR, ...initial
   });
-  vm.runInContext('window = globalThis', page);
+  vm.runInContext('window = globalThis; top = window', page);
   vm.runInContext(script, page);
   return page;
 }
@@ -172,5 +172,236 @@ test('script does not install outside YouTube', () => {
     assert.equal(page.__streamshieldPlayerProtection, undefined);
     page.ytInitialPlayerResponse = fixture();
     assert.ok(page.ytInitialPlayerResponse.adPlacements);
+  }
+});
+
+test('prefetched navigation player data is filtered in JSON, fetch, and XHR before a video opens', async () => {
+  const page = createPage();
+  const url = 'https://m.youtube.com/youtubei/v1/navigation/resolve_url?prettyPrint=false';
+  const body = JSON.stringify({ endpoint: { watchEndpoint: {
+    videoId: 'video-id', unserializedPrefetchData: { playerResponse: fixture() }
+  } } });
+  const unwrap = value => value.endpoint.watchEndpoint.unserializedPrefetchData.playerResponse;
+  page.source = body;
+  assertClean(unwrap(vm.runInContext('JSON.parse(source)', page)));
+  assertClean(unwrap(await response(page, body, url).json()));
+  assertClean(unwrap(JSON.parse(await response(page, body, url).text())));
+  assertClean(unwrap(JSON.parse(new page.XMLHttpRequest(url, body).responseText)));
+  const foreign = 'https://youtube.com.example.org/youtubei/v1/navigation/resolve_url';
+  assert.equal(await response(page, body, foreign).text(), body);
+});
+
+// Model ad-state transitions and media metadata separately from DOM mutations.
+// A blocked ad has no metadata/event to wake an observer; a normal content
+// spinner has the same media state but must never trigger a seek or reload.
+function recoveryPage({ ad = true, duration = NaN, readyState = 0, skip = null,
+  playerResponse = fixture(), reloadAvailable = true, href } = {}) {
+  let now = 0;
+  let nextTimer = 0;
+  let mutation;
+  const timers = new Map();
+  const listeners = new Map();
+  const seeks = [];
+  const reloads = [];
+  let position = 0;
+  const video = {
+    duration, readyState, error: null, currentSrc: 'https://ads.example/preroll',
+    get currentTime() { return position; },
+    set currentTime(value) { position = value; seeks.push(value); }
+  };
+  const state = { ad, video, skip, playerResponse };
+  const player = {
+    classList: { contains: name => state.ad && name === 'ad-showing' },
+    querySelector: selector => selector === 'video' ? state.video : state.skip,
+    querySelectorAll: () => Array.isArray(state.skip) ? state.skip : state.skip ? [state.skip] : [],
+    getPlayerResponse: () => state.playerResponse
+  };
+  if (reloadAvailable) player.loadVideoById = (...args) => reloads.push(args);
+  const page = createPage('m.youtube.com', {
+    document: {
+      getElementById: () => player,
+      querySelector: () => player,
+      addEventListener: (name, callback) => listeners.set(name, callback)
+    },
+    Date: class extends Date { static now() { return now; } },
+    MutationObserver: class {
+      constructor(callback) { mutation = callback; }
+      observe() {}
+    },
+    setTimeout(callback, delay) {
+      const id = ++nextTimer;
+      timers.set(id, { callback, at: now + delay });
+      return id;
+    }
+  });
+  if (href) page.location.href = href;
+  function advance(milliseconds = 0) {
+    const end = now + milliseconds;
+    while (true) {
+      const next = [...timers].sort((a, b) => a[1].at - b[1].at)[0];
+      if (!next || next[1].at > end) break;
+      now = next[1].at;
+      timers.delete(next[0]);
+      next[1].callback();
+    }
+    now = end;
+  }
+  return { page, player, state, seeks, reloads, timers, advance, mutate: () => mutation(),
+    dispatch: (name, target = video) => listeners.get(name)?.({ target }) };
+}
+
+function skipButton({ disabled = false, visible = true, ariaDisabled = false, click = () => {} } = {}) {
+  return { disabled, getClientRects: () => visible ? [{}] : [],
+    getAttribute: () => ariaDisabled ? 'true' : null, click };
+}
+
+test('an available skip control is used immediately, once, without seeking the video', () => {
+  let clicks = 0;
+  const testPage = recoveryPage({ duration: 30, skip: skipButton({ click: () => { clicks++; } }) });
+  testPage.advance();
+  assert.equal(clicks, 1);
+  assert.deepEqual(testPage.seeks, []);
+  testPage.state.ad = false;
+  testPage.mutate();
+  testPage.advance(250);
+  assert.equal(testPage.timers.size, 0, 'ad polling ends with content');
+  assert.deepEqual(testPage.reloads, []);
+});
+
+test('a finite preroll is ended immediately and a second ad source is handled without waiting out either ad', () => {
+  const testPage = recoveryPage({ duration: 30 });
+  testPage.advance();
+  assert.deepEqual(testPage.seeks, [30]);
+  testPage.advance(500);
+  assert.deepEqual(testPage.seeks, [30], 'do not repeatedly seek the same ad');
+  testPage.state.video.currentSrc = 'https://ads.example/second';
+  testPage.state.video.duration = 15;
+  testPage.dispatch('loadedmetadata');
+  testPage.advance(250);
+  assert.deepEqual(testPage.seeks, [30, 15]);
+});
+
+test('hidden, disabled, and aria-disabled skip controls are not clicked', () => {
+  for (const options of [{ visible: false }, { disabled: true }, { ariaDisabled: true }]) {
+    const testPage = recoveryPage({ duration: 10, skip: skipButton({ ...options,
+      click() { assert.fail('ineligible control clicked'); } }) });
+    testPage.advance();
+    assert.deepEqual(testPage.seeks, [10]);
+  }
+});
+
+test('a hidden skip template does not mask a visible skip control', () => {
+  let clicks = 0;
+  const testPage = recoveryPage({ duration: 10, skip: [
+    skipButton({ visible: false, click() { assert.fail('hidden template clicked'); } }),
+    skipButton({ click() { clicks++; } })
+  ] });
+  testPage.advance();
+  assert.equal(clicks, 1);
+  assert.deepEqual(testPage.seeks, []);
+});
+
+test('a blocked preroll with no metadata retries the current content once instead of waiting forever', () => {
+  const testPage = recoveryPage();
+  testPage.advance(749);
+  assert.deepEqual(testPage.reloads, []);
+  testPage.advance(1);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+  assert.equal(testPage.state.playerResponse.adPlacements, undefined);
+  testPage.advance(10000);
+  testPage.mutate();
+  testPage.advance(250);
+  assert.equal(testPage.reloads.length, 1, 'no retry loop');
+  assert.deepEqual(testPage.seeks, [], 'never seek an unknown duration');
+});
+
+test('an ad whose seek never finishes can use the bounded player retry', () => {
+  const testPage = recoveryPage({ duration: 30 });
+  testPage.advance(1000);
+  assert.deepEqual(testPage.seeks, [30]);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+});
+
+test('an ended ad with buffered media can recover if the player never transitions to content', () => {
+  const testPage = recoveryPage({ duration: 30, readyState: 4 });
+  testPage.advance();
+  testPage.state.video.ended = true;
+  testPage.advance(1000);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+});
+
+test('late skip controls are noticed and repeated injection does not create another recovery loop', () => {
+  const testPage = recoveryPage();
+  testPage.advance();
+  vm.runInContext(script, testPage.page);
+  assert.equal(testPage.timers.size, 1);
+  let clicks = 0;
+  testPage.state.skip = skipButton({ click() { clicks++; testPage.state.ad = false; } });
+  testPage.mutate();
+  testPage.advance(1000);
+  assert.equal(clicks, 1);
+  assert.deepEqual(testPage.reloads, []);
+  assert.equal(testPage.timers.size, 0);
+});
+
+test('ordinary playback, pause, buffering, errors, and live content are never sought or reloaded without an ad state', () => {
+  for (const duration of [NaN, Infinity, 200]) {
+    const testPage = recoveryPage({ ad: false, duration });
+    testPage.advance(10000);
+    testPage.dispatch('error');
+    testPage.mutate();
+    testPage.advance(1000);
+    assert.deepEqual(testPage.seeks, []);
+    assert.deepEqual(testPage.reloads, []);
+    assert.equal(testPage.timers.size, 0);
+  }
+});
+
+test('recovery keeps timestamps and the last content position instead of using an ad position', () => {
+  for (const [suffix, seconds] of [['&t=1m30s', 90], ['&start=42', 42], ['&t=2h3m4s', 7384], ['&t=invalid', 0]]) {
+    const testPage = recoveryPage({ href: `https://m.youtube.com/watch?v=video-id${suffix}` });
+    testPage.advance(1000);
+    assert.deepEqual(testPage.reloads, [['video-id', seconds]]);
+  }
+  const testPage = recoveryPage({ ad: false });
+  testPage.advance();
+  testPage.state.video.currentTime = 124;
+  testPage.dispatch('timeupdate');
+  testPage.state.ad = true;
+  testPage.state.video.currentTime = 3;
+  testPage.dispatch('timeupdate');
+  testPage.mutate();
+  testPage.advance(1000);
+  assert.deepEqual(testPage.reloads, [['video-id', 124]]);
+});
+
+test('navigation resets retry budget and content position; stale player data cannot reload the previous video', () => {
+  const testPage = recoveryPage();
+  testPage.advance(1000);
+  testPage.page.location.href = 'https://m.youtube.com/watch?v=next-id';
+  testPage.dispatch('yt-navigate-finish');
+  testPage.advance(1000);
+  assert.equal(testPage.reloads.length, 1, 'stale response is ignored');
+  testPage.state.playerResponse = fixture();
+  testPage.state.playerResponse.videoDetails.videoId = 'next-id';
+  testPage.advance(250);
+  assert.deepEqual(testPage.reloads, [['video-id', 0], ['next-id', 0]]);
+});
+
+test('retry does not override access errors, live streams, unavailable APIs, or non-watch pages', () => {
+  for (const status of ['LOGIN_REQUIRED', 'UNPLAYABLE', 'LIVE_STREAM_OFFLINE']) {
+    const playerResponse = fixture();
+    playerResponse.playabilityStatus.status = status;
+    const testPage = recoveryPage({ playerResponse });
+    testPage.advance(5000);
+    assert.deepEqual(testPage.reloads, []);
+  }
+  const live = fixture();
+  live.videoDetails.isLive = true;
+  for (const options of [{ playerResponse: live }, { reloadAvailable: false }, { readyState: 4 },
+    { href: 'https://m.youtube.com/shorts/video-id' }, { href: 'https://m.youtube.com/' }]) {
+    const testPage = recoveryPage(options);
+    testPage.advance(5000);
+    assert.deepEqual(testPage.reloads, []);
   }
 });

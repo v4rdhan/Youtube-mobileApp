@@ -1,5 +1,12 @@
 # Verification
 
+The additional startup-loading fix was reapplied on 9 November 2026 after it was found missing from the v0.1.6 checkout:
+
+- All 35 Node player regression tests passed. Coverage includes `get_watch` JSON/text/XHR responses, delayed responses waking recovery, startup without an ad marker, pause and normal-buffering guards, access restrictions, and a single retry budget across query-only URL changes.
+- All 5 Kotlin unit tests passed, Android test fixtures compiled, and Android lint completed with 0 errors and 13 warnings. These checks did not package or install an APK.
+- Startup without an ad marker qualifies for one retry after eight seconds only if nonempty ad data was removed for that video, playback was requested, the page is visible, the response is playable and non-live, and no content media data arrived. This path does not seek the video.
+- Restored the Android WebView regression fixture for Protection on/off. The device tests and live playback were not rerun during this reapplication; the phone's reported failure still needs a retest with the updated code.
+
 Startup-ad recovery checked on 9 November 2026 on the Android 15/API 35 emulator with WebView 124.0.6367.219:
 
 - All 25 Node player regression tests, 5 Kotlin unit tests, and 8 Android instrumentation tests passed. Android lint: 0 errors, 9 warnings.

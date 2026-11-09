@@ -93,6 +93,7 @@ test('JSON reviver behavior, primitives, unrelated data, and parse errors are pr
 test('fetch JSON and text responses lose ads while retaining content and Response metadata', async () => {
   const page = createPage();
   for (const url of [playerUrl, 'https://m.youtube.com/youtubei/v1/next',
+    'https://m.youtube.com/youtubei/v1/get_watch?prettyPrint=false',
     'https://m.youtube.com/youtubei/v1/reel/reel_watch_sequence',
     'https://m.youtube.com/watch?v=next&pbj=1', 'https://www.youtube.com/playlist?list=PL123']) {
     const json = response(page, JSON.stringify(fixture()), url);
@@ -194,7 +195,8 @@ test('prefetched navigation player data is filtered in JSON, fetch, and XHR befo
 // Model ad-state transitions and media metadata separately from DOM mutations.
 // A blocked ad has no metadata/event to wake an observer; a normal content
 // spinner has the same media state but must never trigger a seek or reload.
-function recoveryPage({ ad = true, duration = NaN, readyState = 0, skip = null,
+function recoveryPage({ ad = true, duration = NaN, readyState = 0, skip = null, paused = true,
+  filtered = false, playerState, stats,
   playerResponse = fixture(), reloadAvailable = true, href } = {}) {
   let now = 0;
   let nextTimer = 0;
@@ -205,16 +207,18 @@ function recoveryPage({ ad = true, duration = NaN, readyState = 0, skip = null,
   const reloads = [];
   let position = 0;
   const video = {
-    duration, readyState, error: null, currentSrc: 'https://ads.example/preroll',
+    duration, readyState, paused, error: null, currentSrc: 'https://ads.example/preroll',
     get currentTime() { return position; },
     set currentTime(value) { position = value; seeks.push(value); }
   };
-  const state = { ad, video, skip, playerResponse };
+  const state = { ad, video, skip, playerResponse, playerState, stats };
   const player = {
     classList: { contains: name => state.ad && name === 'ad-showing' },
     querySelector: selector => selector === 'video' ? state.video : state.skip,
     querySelectorAll: () => Array.isArray(state.skip) ? state.skip : state.skip ? [state.skip] : [],
-    getPlayerResponse: () => state.playerResponse
+    getPlayerResponse: () => state.playerResponse,
+    getPlayerState: () => state.playerState,
+    getStatsForNerds: () => state.stats
   };
   if (reloadAvailable) player.loadVideoById = (...args) => reloads.push(args);
   const page = createPage('m.youtube.com', {
@@ -235,6 +239,7 @@ function recoveryPage({ ad = true, duration = NaN, readyState = 0, skip = null,
     }
   });
   if (href) page.location.href = href;
+  if (filtered) page.ytInitialPlayerResponse = playerResponse;
   function advance(milliseconds = 0) {
     const end = now + milliseconds;
     while (true) {
@@ -404,4 +409,133 @@ test('retry does not override access errors, live streams, unavailable APIs, or 
     testPage.advance(5000);
     assert.deepEqual(testPage.reloads, []);
   }
+});
+
+test('filtered startup with no ad marker retries once after eight seconds of requested playback without frames', () => {
+  const testPage = recoveryPage({ ad: false, filtered: true, paused: false });
+  testPage.advance(7999);
+  assert.deepEqual(testPage.reloads, []);
+  testPage.advance(1);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+  testPage.advance(60000);
+  assert.equal(testPage.reloads.length, 1);
+  assert.deepEqual(testPage.seeks, []);
+  assert.equal(testPage.timers.size, 0);
+});
+
+test('player buffering state can detect requested startup while WebView still reports paused', () => {
+  const testPage = recoveryPage({ ad: false, filtered: true, playerState: 3 });
+  testPage.advance(8000);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+});
+
+test('get_watch fetch and XHR envelopes retain evidence for recovery after their ad fields are removed', async () => {
+  const url = 'https://m.youtube.com/youtubei/v1/get_watch?prettyPrint=false';
+  for (const transport of ['json', 'text', 'xhr']) {
+    const testPage = recoveryPage({ ad: false, paused: false });
+    testPage.advance();
+    assert.equal(testPage.timers.size, 0, 'idle until ad data arrives');
+    const body = JSON.stringify([{ playerResponse: fixture() }]);
+    const result = transport === 'xhr'
+      ? JSON.parse(new testPage.page.XMLHttpRequest(url, body).responseText)
+      : transport === 'text'
+        ? JSON.parse(await response(testPage.page, body, url).text())
+        : await response(testPage.page, body, url).json();
+    testPage.state.playerResponse = result[0].playerResponse;
+    assertClean(testPage.state.playerResponse);
+    testPage.advance(8000);
+    assert.deepEqual(testPage.reloads, [['video-id', 0]], transport);
+  }
+});
+
+test('no unmarked retry without removed ads, user playback, or while hidden, even after media events', () => {
+  for (const options of [{ filtered: false, paused: false }, { filtered: true, paused: true },
+    { filtered: true, paused: false, readyState: 4 }]) {
+    const testPage = recoveryPage({ ad: false, ...options });
+    for (const event of ['play', 'waiting', 'stalled', 'error']) testPage.dispatch(event);
+    testPage.advance(20000);
+    assert.deepEqual(testPage.reloads, []);
+    assert.deepEqual(testPage.seeks, []);
+  }
+  const testPage = recoveryPage({ ad: false, filtered: true, paused: false });
+  testPage.page.document.visibilityState = 'hidden';
+  testPage.advance(20000);
+  assert.deepEqual(testPage.reloads, []);
+});
+
+test('empty ad placeholders are not evidence for an unmarked startup retry', () => {
+  const playerResponse = fixture();
+  playerResponse.adPlacements = []; playerResponse.playerAds = []; playerResponse.adSlots = [];
+  const testPage = recoveryPage({ ad: false, filtered: true, paused: false, playerResponse });
+  testPage.advance(20000);
+  assert.deepEqual(testPage.reloads, []);
+});
+
+test('content frames arriving before the deadline cancel startup recovery and later content buffering stays untouched', () => {
+  const testPage = recoveryPage({ ad: false, filtered: true, paused: false });
+  testPage.advance(7000);
+  testPage.state.video.readyState = 4;
+  testPage.dispatch('canplay');
+  testPage.advance(250);
+  testPage.state.video.readyState = 0;
+  testPage.dispatch('waiting');
+  testPage.advance(20000);
+  assert.deepEqual(testPage.reloads, []);
+  assert.equal(testPage.timers.size, 0);
+});
+
+test('pausing or replacing the startup media restarts the grace period', () => {
+  const testPage = recoveryPage({ ad: false, filtered: true, paused: false });
+  testPage.advance(7000);
+  testPage.state.video.paused = true;
+  testPage.dispatch('pause');
+  testPage.advance(5000);
+  assert.deepEqual(testPage.reloads, []);
+  testPage.state.video.paused = false;
+  testPage.dispatch('play');
+  testPage.advance(7999);
+  assert.deepEqual(testPage.reloads, []);
+  testPage.advance(1);
+  assert.equal(testPage.reloads.length, 1);
+
+  const replacement = recoveryPage({ ad: false, filtered: true, paused: false });
+  replacement.advance(7000);
+  replacement.state.video = { ...replacement.state.video };
+  replacement.advance(1000);
+  assert.deepEqual(replacement.reloads, []);
+  replacement.advance(7250);
+  assert.equal(replacement.reloads.length, 1);
+});
+
+test('startup retry respects access errors, live streams, stale responses, and non-watch routes', () => {
+  for (const status of ['LOGIN_REQUIRED', 'UNPLAYABLE', 'LIVE_STREAM_OFFLINE']) {
+    const playerResponse = fixture();
+    playerResponse.playabilityStatus.status = status;
+    const testPage = recoveryPage({ ad: false, filtered: true, paused: false, playerResponse });
+    testPage.advance(20000);
+    assert.deepEqual(testPage.reloads, []);
+  }
+  const live = fixture(); live.videoDetails.isLive = true;
+  for (const options of [{ playerResponse: live }, { reloadAvailable: false },
+    { href: 'https://m.youtube.com/watch?v=other' }, { href: 'https://m.youtube.com/shorts/video-id' }]) {
+    const testPage = recoveryPage({ ad: false, filtered: true, paused: false, ...options });
+    testPage.advance(20000);
+    assert.deepEqual(testPage.reloads, []);
+  }
+});
+
+test('query-only changes preserve the retry budget and content position', () => {
+  const testPage = recoveryPage();
+  testPage.advance(1000);
+  testPage.page.location.href += '&list=mix&pp=tracking';
+  testPage.dispatch('yt-navigate-finish');
+  testPage.advance(10000);
+  assert.equal(testPage.reloads.length, 1);
+});
+
+test('SSAP ad diagnostics trigger a bounded retry even without an ad CSS marker', () => {
+  const testPage = recoveryPage({ ad: false, duration: 300, stats: { debug_info: 'SSAP, AD, preroll' } });
+  testPage.advance(1000);
+  assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+  assert.deepEqual(testPage.seeks, []);
 });

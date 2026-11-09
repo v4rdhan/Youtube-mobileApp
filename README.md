@@ -58,6 +58,8 @@ You can also open this folder in Android Studio. Releases from GitHub Actions ar
 
 ## CI and releases
 
+Both CI workflows prepare Gradle before running build tasks, with up to three attempts and 10/20-second retry delays for temporary download failures such as HTTP 504. The wrapper uses a 60-second network timeout and verifies the distribution against Gradle's published SHA-256 checksum. Persistent bootstrap failures still fail the job; build and test failures are not retried. To run the same preparation locally on Linux/macOS, use `bash scripts/prepare-gradle.sh`.
+
 Both CI workflows install Android SDK packages through `scripts/install-android-sdk.py`. Each package gets up to three attempts, with a short delay and SDK temporary-download cleanup between failures. This allows a corrupt or interrupted NDK download (`Error on ZipFile unknown archive`) to be downloaded again; persistent installation errors still fail the job.
 
 GitHub Actions runs unit tests, Android lint, and Rust tests for non-`main` pushes and pull requests targeting `main`. When a pull request is merged into `main`, the release workflow increments `versionCode` and the patch portion of `versionName`, builds and signs the release APK, commits the version bump, creates a matching `v<versionName>` tag, and publishes the APK with a SHA-256 checksum in a GitHub Release. The workflow needs `contents: write` permission and permission to push version commits to `main`; branch protection rules may need to allow GitHub Actions to do so.

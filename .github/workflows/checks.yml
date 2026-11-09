@@ -37,6 +37,9 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Prepare Gradle with download retries
+        run: bash scripts/prepare-gradle.sh
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:

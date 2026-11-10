@@ -61,11 +61,15 @@ mod tests {
     #[test]
     fn blocks_ad_endpoints_without_blocking_video_cdn() {
         let engine = build_engine(RULES);
-        for url in ["https://googleads.g.doubleclick.net/pagead/id", "https://www.youtube.com/api/stats/ads?x=1"] {
-            let request = Request::new(url, "https://m.youtube.com/watch?v=test", "xmlhttprequest", "GET").unwrap();
-            assert!(engine.check_network_request(&request).should_block(), "{url}");
+        for url in ["https://googleads.g.doubleclick.net/pagead/id", "https://www.youtube.com/api/stats/ads?x=1",
+            "https://m.youtube.com/youtubei/v1/player/ad_break?prettyPrint=false"] {
+            for method in ["GET", "POST"] {
+                let request = Request::new(url, "https://m.youtube.com/watch?v=test", "xmlhttprequest", method).unwrap();
+                assert!(engine.check_network_request(&request).should_block(), "{method} {url}");
+            }
         }
-        for url in ["https://rr1.googlevideo.com/videoplayback?id=test", "https://www.youtube.com/youtubei/v1/player", "https://i.ytimg.com/vi/test/hqdefault.jpg"] {
+        for url in ["https://rr1.googlevideo.com/videoplayback?id=test", "https://www.youtube.com/youtubei/v1/player", "https://i.ytimg.com/vi/test/hqdefault.jpg",
+            "https://m.youtube.com/youtubei/v1/player/ad_breakfast", "https://youtube.com.example.org/youtubei/v1/player/ad_break"] {
             let request = Request::new(url, "https://m.youtube.com", "media", "GET").unwrap();
             assert!(!engine.check_network_request(&request).should_block(), "{url}");
         }

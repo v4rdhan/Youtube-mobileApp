@@ -8,7 +8,9 @@
 
   const parse = JSON.parse;
   const stringify = JSON.stringify;
-  const adKeys = ['adPlacements', 'playerAds', 'adSlots'];
+  // The heartbeat field and dedicated ad-break endpoint are also handled by
+  // YTPro's scripts/script.js (MIT); see THIRD_PARTY_NOTICES.md.
+  const adKeys = ['adPlacements', 'playerAds', 'adSlots', 'adBreakHeartbeatParams'];
   // Retain only IDs, not response/stream objects. This supplies evidence for a
   // startup retry when removing ad data leaves no ad-showing DOM marker.
   const filteredVideos = new Set();
@@ -61,7 +63,7 @@
   }
 
   function pruneText(text) {
-    if (typeof text !== 'string' || !/"(?:adPlacements|playerAds|adSlots|player_response)"/.test(text)) return text;
+    if (typeof text !== 'string' || !/"(?:adPlacements|playerAds|adSlots|adBreakHeartbeatParams|player_response)"/.test(text)) return text;
     try {
       const value = parse(text);
       return prune(value) ? stringify(value) : text;
@@ -92,6 +94,40 @@
   JSON.parse = new Proxy(parse, {
     apply(target, receiver, args) { return clean(Reflect.apply(target, receiver, args)); }
   });
+
+  function isAdUrl(url) {
+    return url.protocol === 'https:' &&
+      (/(^|\.)doubleclick\.net$/.test(url.hostname) ||
+       (/(^|\.)youtube\.com$/.test(url.hostname) &&
+        /^\/(?:youtubei\/v\d+\/player\/ad_break|pagead\/adview|api\/stats\/ads)(?:\/|$)/.test(url.pathname)));
+  }
+
+  // Stop dedicated ad fetches before dispatch, including POST. Return a real
+  // JSON Response so callers can still consume the body normally. Content
+  // requests keep their original arguments, Response identity, and errors.
+  if (typeof window.fetch === 'function' && typeof Request !== 'undefined' && typeof Response !== 'undefined') {
+    window.fetch = new Proxy(window.fetch, {
+      apply(target, receiver, args) {
+        const input = args[0];
+        let url;
+        try {
+          url = new URL(typeof input === 'string' || input instanceof URL ? input : input?.url, location.href);
+        } catch (_) {}
+        if (!url || !isAdUrl(url)) return Reflect.apply(target, receiver, args);
+        return (async () => {
+          // Validate request options and honor cancellation even when blocked.
+          const request = new Request(input instanceof Request ? input : url.href, args[1]);
+          if (request.signal.aborted) {
+            throw request.signal.reason === undefined ? new DOMException('The operation was aborted.', 'AbortError') : request.signal.reason;
+          }
+          return new Response('{}', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+          });
+        })();
+      }
+    });
+  }
 
   function isPlayerUrl(address) {
     try {

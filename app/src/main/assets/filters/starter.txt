@@ -5,8 +5,10 @@
 ||googleadservices.com^
 ||youtube.com/api/stats/ads^
 ||youtube.com/pagead/^
+||youtube.com/youtubei/v1/player/ad_break^
 ||youtube.com/ptracking^
 youtube.com##ytm-ad-slot-renderer
+youtube.com##ad-slot-renderer
 youtube.com##ytm-promoted-sparkles-web-renderer
 youtube.com##ytm-promoted-sparkles-text-search-renderer
 youtube.com##ytm-companion-ad-renderer

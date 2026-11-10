@@ -198,6 +198,7 @@ class YouTubePlayerTest {
                               function startupResponse() {
                                 return {
                                   adPlacements: [{}], playerAds: [{}], adSlots: [{}],
+                                  adBreakHeartbeatParams: 'fixture-heartbeat',
                                   videoDetails: {videoId: 'fixture'},
                                   streamingData: {formats: [{url: 'https://video.googlevideo.com/videoplayback'}]},
                                   playabilityStatus: {status: 'LOGIN_REQUIRED'}
@@ -205,6 +206,7 @@ class YouTubePlayerTest {
                               }
                               var ytInitialPlayerResponse = startupResponse();
                               window.startupHadAds = 'adPlacements' in ytInitialPlayerResponse;
+                              window.startupHadHeartbeat = 'adBreakHeartbeatParams' in ytInitialPlayerResponse;
                               var playerResponse = startupResponse();
                               window.directHadAds = 'adPlacements' in playerResponse;
                               var ytplayer = {};
@@ -232,6 +234,7 @@ class YouTubePlayerTest {
                     assertEquals("Known player ad fields follow switch", !enabled, result.getBoolean("hasAds"))
                     if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                         assertEquals("Inline player data filtered before first read", !enabled, result.getBoolean("startupHadAds"))
+                        assertEquals("Inline ad heartbeat follows Protection", !enabled, result.getBoolean("startupHadHeartbeat"))
                         assertEquals("Standalone player response filtered before first read", !enabled, result.getBoolean("directHadAds"))
                         assertEquals("Serialized config filtered before parsing", !enabled, result.getBoolean("configHadAds"))
                         assertEquals("Response filled in place filtered before first read", !enabled, result.getBoolean("populatedHadAds"))
@@ -255,10 +258,11 @@ class YouTubePlayerTest {
                 complete: document.readyState === 'complete',
                 installed: !!window.__streamshieldPlayerProtection,
                 startupHadAds: window.startupHadAds,
+                startupHadHeartbeat: window.startupHadHeartbeat,
                 directHadAds: window.directHadAds,
                 configHadAds: window.configHadAds,
                 populatedHadAds: window.populatedHadAds,
-                hasAds: 'adPlacements' in player || 'playerAds' in player || 'adSlots' in player,
+                hasAds: 'adPlacements' in player || 'playerAds' in player || 'adSlots' in player || 'adBreakHeartbeatParams' in player,
                 videoId: player.videoDetails && player.videoDetails.videoId,
                 status: player.playabilityStatus && player.playabilityStatus.status,
                 stream: player.streamingData && player.streamingData.formats[0].url

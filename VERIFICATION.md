@@ -1,5 +1,12 @@
 # Verification
 
+YTPro-based startup-ad protection added on 10 November 2026 after inspecting the supplied `YTPro-main.zip`:
+
+- Adapted `scripts/script.js`'s `adBreakHeartbeatParams` removal and dedicated ad-endpoint blocking. Player ad-break, ad-view, ad-statistics, and DoubleClick fetches are stopped before dispatch, including POST requests; blocked fetches resolve to a consumable JSON `Response`. The starter rules now also block the ad-break endpoint and hide `ad-slot-renderer`. The MIT notice is retained in `THIRD_PARTY_NOTICES.md`.
+- All 44 Node player regression tests, 4 Rust tests, and 5 Kotlin unit tests passed. Before the implementation, 15 player cases failed with the extended fixtures, including heartbeat removal and ad-fetch interception. Coverage includes relative/string/URL/Request inputs, cancellation, invalid request options, lookalike hosts, response identity, access status, stream data, and existing bounded recovery.
+- Debug APK built at `app/build/outputs/apk/debug/app-debug.apk`; the updated Android Protection on/off heartbeat fixture compiled and its test APK was assembled. Android lint completed with 0 errors and 8 warnings.
+- Device tests and live YouTube playback were not run: no device was connected and no Android system image is installed in the configured SDK. Startup ads on the user's phone still need a playback check with this APK and Protection enabled; these offline checks do not establish universal ad removal.
+
 Inline startup-ad filtering extended on 9 November 2026 after comparing the supplied v0.1.4 source ZIP with this newer checkout:
 
 - Standalone `playerResponse`, serialized `ytplayer.config.args.player_response`, and initial objects filled in place are now cleaned when their global is read. Existing response identity, stream data, and access status are retained.

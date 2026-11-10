@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const script = readFileSync(new URL('../../app/src/main/assets/youtube-player.js', import.meta.url), 'utf8');
 const playerUrl = 'https://m.youtube.com/youtubei/v1/player?prettyPrint=false';
 const fixture = () => ({
-  adPlacements: [{ preRoll: true }], playerAds: [{}], adSlots: [{}],
+  adPlacements: [{ preRoll: true }], playerAds: [{}], adSlots: [{}], adBreakHeartbeatParams: 'ad-heartbeat',
   videoDetails: { videoId: 'video-id', title: 'Video' },
   streamingData: { adaptiveFormats: [{ url: 'https://video.googlevideo.com/videoplayback?id=content' }] },
   playabilityStatus: { status: 'OK' }, captions: { tracks: [] },
@@ -30,7 +30,7 @@ function createPage(host = 'm.youtube.com', initial = {}) {
   }
   const page = vm.createContext({
     location: { protocol: 'https:', hostname: host, href: `https://${host}/watch?v=video-id` },
-    URL, Response: PageResponse, XMLHttpRequest: PageXHR, ...initial
+    URL, Request, DOMException, Response: PageResponse, XMLHttpRequest: PageXHR, ...initial
   });
   vm.runInContext('window = globalThis; top = window', page);
   vm.runInContext(script, page);
@@ -44,8 +44,8 @@ function response(page, body, url = playerUrl) {
 }
 
 function assertClean(value) {
-  for (const key of ['adPlacements', 'playerAds', 'adSlots']) assert.equal(key in value, false, key);
-  const { adPlacements, playerAds, adSlots, ...content } = fixture();
+  for (const key of ['adPlacements', 'playerAds', 'adSlots', 'adBreakHeartbeatParams']) assert.equal(key in value, false, key);
+  const { adPlacements, playerAds, adSlots, adBreakHeartbeatParams, ...content } = fixture();
   assert.deepEqual(JSON.parse(JSON.stringify(value)), content);
 }
 
@@ -161,6 +161,85 @@ test('fetch text covers nested serialized player configs', async () => {
   const body = JSON.stringify({ args: { player_response: JSON.stringify(fixture()) } });
   const result = JSON.parse(await response(page, body).text());
   assertClean(JSON.parse(result.args.player_response));
+});
+
+test('heartbeat-only text is filtered without changing content or access data', async () => {
+  const { adPlacements, playerAds, adSlots, ...heartbeat } = fixture();
+  const page = createPage();
+  assertClean(JSON.parse(await response(page, JSON.stringify(heartbeat)).text()));
+  assertClean(JSON.parse(new page.XMLHttpRequest(playerUrl, JSON.stringify(heartbeat)).responseText));
+});
+
+test('ad fetches including POST, URL, Request, and relative inputs never reach the network', async () => {
+  const page = createPage('m.youtube.com', { fetch() { assert.fail('ad request reached the network'); } });
+  for (const input of [
+    '/youtubei/v1/player/ad_break?prettyPrint=false',
+    'https://www.youtube.com/youtubei/v1/player/ad_break',
+    new URL('https://m.youtube.com/youtubei/v1/player/ad_break/'),
+    new Request('https://m.youtube.com/youtubei/v1/player/ad_break', { method: 'POST', body: '{}' }),
+    'https://googleads.g.doubleclick.net/pagead/id',
+    'https://m.youtube.com/pagead/adview?ad=1',
+    'https://m.youtube.com/api/stats/ads?ad=1'
+  ]) {
+    const result = await page.fetch(input, { method: 'POST', body: '{}' });
+    assert.ok(result instanceof page.Response);
+    assert.equal(result.status, 200);
+    assert.equal(result.headers.get('Content-Type'), 'application/json');
+    assert.equal(result.headers.get('Cache-Control'), 'no-store');
+    assert.equal(result.bodyUsed, false);
+    assert.deepEqual(await result.json(), {});
+    assert.equal(result.bodyUsed, true);
+    await assert.rejects(result.json(), TypeError);
+  }
+});
+
+test('ad fetches preserve cancellation and reject invalid request options', async () => {
+  const page = createPage('m.youtube.com', { fetch() { assert.fail('ad request reached the network'); } });
+  const url = 'https://m.youtube.com/youtubei/v1/player/ad_break';
+  const controller = new AbortController();
+  const reason = new Error('cancelled');
+  controller.abort(reason);
+  await assert.rejects(page.fetch(url, { signal: controller.signal }), error => error === reason);
+  await assert.rejects(page.fetch(new Request(url, { signal: controller.signal })), error => error === reason);
+  await assert.rejects(page.fetch(url, { method: 'GET', body: '{}' }), TypeError);
+});
+
+test('content, unrelated URLs, and lookalikes retain fetch arguments, responses, and errors', async () => {
+  const sentinel = new Response('content');
+  let received;
+  let receiver;
+  const page = createPage('m.youtube.com', { fetch(...args) { received = args; receiver = this; return Promise.resolve(sentinel); } });
+  const inputs = [playerUrl, new Request(playerUrl), new URL(playerUrl),
+    '/youtubei/v1/get_watch', 'https://m.youtube.com/youtubei/v1/player/ad_breakfast',
+    'https://youtube.com.example.com/youtubei/v1/player/ad_break',
+    'https://m.youtube.com/api/stats/ads-content',
+    'https://googleads.g.doubleclick.net.example.com/pagead/id',
+    'https://example.org/?next=https://m.youtube.com/youtubei/v1/player/ad_break',
+    'https://rr1.googlevideo.com/videoplayback?id=content'];
+  for (const input of inputs) {
+    const options = { method: 'POST', body: '{}', credentials: 'include' };
+    assert.equal(await page.fetch(input, options), sentinel);
+    assert.equal(received[0], input);
+    assert.equal(received[1], options);
+    assert.equal(receiver, page);
+  }
+  const reason = new Error('network failure');
+  const failing = createPage('m.youtube.com', { fetch: () => Promise.reject(reason) });
+  await assert.rejects(failing.fetch(playerUrl), error => error === reason);
+});
+
+test('fetch protection installs once and remains absent outside YouTube', async () => {
+  const original = () => Promise.resolve(new Response('unchanged'));
+  const page = createPage('m.youtube.com', { fetch: original });
+  const wrapped = page.fetch;
+  assert.notEqual(wrapped, original);
+  vm.runInContext(script, page);
+  assert.equal(page.fetch, wrapped);
+  for (const host of ['example.com', 'youtube.com.example.com']) {
+    const other = createPage(host, { fetch: original });
+    assert.equal(other.fetch, original);
+    assert.equal(await (await other.fetch('https://m.youtube.com/youtubei/v1/player/ad_break')).text(), 'unchanged');
+  }
 });
 
 test('non-player responses and non-YouTube lookalike URLs are left byte for byte intact', async () => {

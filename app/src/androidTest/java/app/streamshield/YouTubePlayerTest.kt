@@ -195,13 +195,25 @@ class YouTubePlayerTest {
                         activity.findViewById<WebView>(R.id.webview).loadDataWithBaseURL(
                             YouTubeUrls.HOME,
                             """<!doctype html><html><body><script>
-                              var ytInitialPlayerResponse = {
-                                adPlacements: [{}], playerAds: [{}], adSlots: [{}],
-                                videoDetails: {videoId: 'fixture'},
-                                streamingData: {formats: [{url: 'https://video.googlevideo.com/videoplayback'}]},
-                                playabilityStatus: {status: 'LOGIN_REQUIRED'}
-                              };
+                              function startupResponse() {
+                                return {
+                                  adPlacements: [{}], playerAds: [{}], adSlots: [{}],
+                                  videoDetails: {videoId: 'fixture'},
+                                  streamingData: {formats: [{url: 'https://video.googlevideo.com/videoplayback'}]},
+                                  playabilityStatus: {status: 'LOGIN_REQUIRED'}
+                                };
+                              }
+                              var ytInitialPlayerResponse = startupResponse();
                               window.startupHadAds = 'adPlacements' in ytInitialPlayerResponse;
+                              var playerResponse = startupResponse();
+                              window.directHadAds = 'adPlacements' in playerResponse;
+                              var ytplayer = {};
+                              ytplayer.config = {args: {player_response: JSON.stringify(startupResponse())}};
+                              window.configHadAds = /"adPlacements"/.test(ytplayer.config.args.player_response);
+                              var retainedResponse = {};
+                              ytInitialPlayerResponse = retainedResponse;
+                              Object.assign(retainedResponse, startupResponse());
+                              window.populatedHadAds = 'adPlacements' in ytInitialPlayerResponse;
                               window.fixtureToken = $index;
                             </script></body></html>""",
                             "text/html", "UTF-8", null
@@ -220,6 +232,9 @@ class YouTubePlayerTest {
                     assertEquals("Known player ad fields follow switch", !enabled, result.getBoolean("hasAds"))
                     if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                         assertEquals("Inline player data filtered before first read", !enabled, result.getBoolean("startupHadAds"))
+                        assertEquals("Standalone player response filtered before first read", !enabled, result.getBoolean("directHadAds"))
+                        assertEquals("Serialized config filtered before parsing", !enabled, result.getBoolean("configHadAds"))
+                        assertEquals("Response filled in place filtered before first read", !enabled, result.getBoolean("populatedHadAds"))
                     }
                     assertEquals("fixture", result.getString("videoId"))
                     assertEquals("LOGIN_REQUIRED", result.getString("status"))
@@ -240,6 +255,9 @@ class YouTubePlayerTest {
                 complete: document.readyState === 'complete',
                 installed: !!window.__streamshieldPlayerProtection,
                 startupHadAds: window.startupHadAds,
+                directHadAds: window.directHadAds,
+                configHadAds: window.configHadAds,
+                populatedHadAds: window.populatedHadAds,
                 hasAds: 'adPlacements' in player || 'playerAds' in player || 'adSlots' in player,
                 videoId: player.videoDetails && player.videoDetails.videoId,
                 status: player.playabilityStatus && player.playabilityStatus.status,

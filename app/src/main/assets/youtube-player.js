@@ -13,7 +13,7 @@
   // startup retry when removing ad data leaves no ad-showing DOM marker.
   const filteredVideos = new Set();
   let onAdData = () => {};
-  const wrappers = ['playerResponse', 'response', 'args', 'PLAYER_VARS',
+  const wrappers = ['playerResponse', 'response', 'config', 'args', 'PLAYER_VARS',
     'endpoint', 'watchEndpoint', 'unserializedPrefetchData'];
 
   // Follow known player envelopes only; do not walk or rewrite stream metadata,
@@ -69,8 +69,10 @@
   }
 
   // Initial HTML assigns these before starting the player. Cover both an
-  // existing value (late fallback injection) and every subsequent assignment.
-  for (const name of ['ytInitialPlayerResponse', 'ytInitialData']) {
+  // existing value (late fallback injection), subsequent assignments, and
+  // objects filled in place before the player reads them. ytplayer.config
+  // can also contain a serialized args.player_response with startup ads.
+  for (const name of ['ytInitialPlayerResponse', 'ytInitialData', 'playerResponse', 'ytplayer']) {
     try {
       const descriptor = Object.getOwnPropertyDescriptor(window, name);
       if (descriptor && (!descriptor.configurable || descriptor.get || descriptor.set)) {
@@ -81,7 +83,7 @@
       Object.defineProperty(window, name, {
         configurable: true,
         enumerable: descriptor ? descriptor.enumerable : true,
-        get() { return value; },
+        get() { return clean(value); },
         set(next) { value = clean(next); }
       });
     } catch (_) {}

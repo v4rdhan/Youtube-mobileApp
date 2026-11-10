@@ -67,6 +67,49 @@ test('late injection cleans existing globals and nested initial data', () => {
   assertClean(page.ytInitialData.playerResponse);
 });
 
+test('standalone inline playerResponse is filtered before its first read and after replacement', () => {
+  const page = createPage();
+  for (let index = 0; index < 2; index++) {
+    page.next = fixture();
+    vm.runInContext('var playerResponse = next; startupResponse = playerResponse', page);
+    assertClean(page.startupResponse);
+    assert.equal(page.startupResponse, page.next, 'preserve the response identity');
+  }
+  assertClean(createPage('www.youtube.com', { playerResponse: fixture() }).playerResponse);
+});
+
+test('startup objects populated after assignment are cleaned again before consumption', () => {
+  const page = createPage();
+  for (const name of ['ytInitialPlayerResponse', 'ytInitialData', 'playerResponse']) {
+    const value = {};
+    page[name] = value;
+    // An inline script may fill a retained reference rather than reassigning
+    // the global. No JSON parser or global setter sees this population.
+    Object.assign(value, fixture());
+    assertClean(page[name]);
+    assert.equal(page[name], value);
+    Object.assign(value, fixture());
+    assertClean(page[name]);
+  }
+});
+
+test('inline ytplayer configs filter serialized startup ads before parsing', () => {
+  const page = createPage();
+  page.config = { args: { player_response: JSON.stringify(fixture()), autoplay: '1' }, assets: { js: '/player.js' } };
+  vm.runInContext('var ytplayer = {}; ytplayer.config = config; startupConfig = ytplayer.config', page);
+  assertClean(JSON.parse(page.startupConfig.args.player_response));
+  assert.equal(page.startupConfig, page.config);
+  assert.equal(page.startupConfig.args.autoplay, '1');
+  assert.equal(page.startupConfig.assets.js, '/player.js');
+
+  const late = createPage('www.youtube.com', {
+    ytplayer: { config: { args: { player_response: JSON.stringify(fixture()) } } }
+  });
+  assertClean(JSON.parse(late.ytplayer.config.args.player_response));
+  page.ytplayer = { config: { playerResponse: fixture() } };
+  assertClean(page.ytplayer.config.playerResponse);
+});
+
 test('JSON parsing covers player responses, SPA envelopes, arrays, and serialized configs', () => {
   const page = createPage();
   const values = [fixture(), { playerResponse: fixture() }, [{ response: { playerResponse: fixture() } }],
@@ -427,6 +470,35 @@ test('player buffering state can detect requested startup while WebView still re
   const testPage = recoveryPage({ ad: false, filtered: true, playerState: 3 });
   testPage.advance(8000);
   assert.deepEqual(testPage.reloads, [['video-id', 0]]);
+});
+
+test('inline startup sources wake bounded recovery after their ad data is removed', () => {
+  for (const source of ['playerResponse', 'populated', 'ytplayer']) {
+    const testPage = recoveryPage({ ad: false, paused: false });
+    testPage.advance();
+    assert.equal(testPage.timers.size, 0);
+    if (source === 'playerResponse') {
+      testPage.page.playerResponse = fixture();
+      testPage.state.playerResponse = testPage.page.playerResponse;
+    } else if (source === 'populated') {
+      const retained = {};
+      testPage.page.ytInitialPlayerResponse = retained;
+      Object.assign(retained, fixture());
+      testPage.state.playerResponse = testPage.page.ytInitialPlayerResponse;
+    } else {
+      testPage.page.ytplayer = {};
+      testPage.page.ytplayer.config = { args: { player_response: JSON.stringify(fixture()) } };
+      testPage.state.playerResponse = JSON.parse(testPage.page.ytplayer.config.args.player_response);
+    }
+    assertClean(testPage.state.playerResponse);
+    testPage.advance(7999);
+    assert.deepEqual(testPage.reloads, [], source);
+    testPage.advance(1);
+    assert.deepEqual(testPage.reloads, [['video-id', 0]], source);
+    testPage.advance(60000);
+    assert.equal(testPage.reloads.length, 1, source);
+    assert.deepEqual(testPage.seeks, [], source);
+  }
 });
 
 test('get_watch fetch and XHR envelopes retain evidence for recovery after their ad fields are removed', async () => {

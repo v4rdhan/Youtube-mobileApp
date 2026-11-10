@@ -1,5 +1,12 @@
 # Verification
 
+Inline startup-ad filtering extended on 9 November 2026 after comparing the supplied v0.1.4 source ZIP with this newer checkout:
+
+- Standalone `playerResponse`, serialized `ytplayer.config.args.player_response`, and initial objects filled in place are now cleaned when their global is read. Existing response identity, stream data, and access status are retained.
+- All 39 Node player regression tests and 5 Kotlin unit tests passed. The three new inline-data regression cases failed before the fix; an additional recovery test confirms these sources wake the existing single-retry path without seeking content.
+- Debug APK built at `app/build/outputs/apk/debug/app-debug.apk`; Android lint completed with 0 errors and 13 warnings. The extended Protection on/off WebView fixture compiled successfully.
+- Device tests and live YouTube playback were not run for this change. No device was connected, and starting the configured read-only API 35 emulator failed because its Android system image is missing. These checks do not establish universal startup-ad removal.
+
 The additional startup-loading fix was reapplied on 9 November 2026 after it was found missing from the v0.1.6 checkout:
 
 - All 35 Node player regression tests passed. Coverage includes `get_watch` JSON/text/XHR responses, delayed responses waking recovery, startup without an ad marker, pause and normal-buffering guards, access restrictions, and a single retry budget across query-only URL changes.

@@ -11,7 +11,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.core.os.BundleCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.appbar.MaterialToolbar
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
@@ -40,7 +40,7 @@ class BackgroundPlaybackTest {
             var ready = false
             waitUntil {
                 scenario.onActivity { activity ->
-                    ready = activity.findViewById<BottomNavigationView>(R.id.navigation).menu
+                    ready = activity.findViewById<MaterialToolbar>(R.id.toolbar).menu
                         .findItem(R.id.action_protection).contentDescription != null
                 }
                 ready
@@ -53,6 +53,7 @@ class BackgroundPlaybackTest {
             scenario.onActivity { activity ->
                 web.set(activity.findViewById(R.id.webview))
                 web.get().settings.mediaPlaybackRequiresUserGesture = false
+                web.get().stopLoading()
                 web.get().loadDataWithBaseURL(YouTubeUrls.HOME, """
                     <!doctype html><html><head><title>Background audio fixture</title></head><body>
                     $media

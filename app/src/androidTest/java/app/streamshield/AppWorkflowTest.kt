@@ -20,7 +20,7 @@ class AppWorkflowTest {
             var ready = false
             while (!ready && System.currentTimeMillis() < deadline) {
                 scenario.onActivity { activity ->
-                    ready = activity.findViewById<BottomNavigationView>(R.id.navigation).menu.findItem(R.id.action_protection).contentDescription == activity.getString(R.string.protection_on)
+                    ready = activity.findViewById<MaterialToolbar>(R.id.toolbar).menu.findItem(R.id.action_protection).contentDescription == activity.getString(R.string.protection_on)
                 }
                 if (!ready) Thread.sleep(100)
             }
@@ -29,7 +29,11 @@ class AppWorkflowTest {
                 val toolbar = activity.findViewById<MaterialToolbar>(R.id.toolbar)
                 val navigation = activity.findViewById<BottomNavigationView>(R.id.navigation)
                 assertEquals(View.GONE, toolbar.visibility)
-                navigation.menu.performIdentifierAction(R.id.action_protection, 0)
+                assertEquals("The reference has four destinations and no add action", 4, navigation.menu.size())
+                assertEquals(listOf(R.id.nav_home, R.id.nav_explore, R.id.nav_channels, R.id.nav_saved),
+                    (0 until navigation.menu.size()).map { navigation.menu.getItem(it).itemId })
+                assertFalse(navigation.isItemActiveIndicatorEnabled)
+                toolbar.menu.performIdentifierAction(R.id.action_protection, 0)
                 assertEquals(View.VISIBLE, toolbar.visibility)
                 val panel = activity.findViewById<ViewGroup>(R.id.native_screen)
                 assertEquals(View.VISIBLE, panel.visibility)
@@ -47,7 +51,7 @@ class AppWorkflowTest {
                 navigation.selectedItemId = R.id.nav_saved
                 assertEquals(View.VISIBLE, panel.visibility)
                 assertTrue(descendants(panel).filterIsInstance<TextView>().any { it.text.toString() == activity.getString(R.string.saved_title) })
-                navigation.menu.performIdentifierAction(R.id.action_protection, 0)
+                toolbar.menu.performIdentifierAction(R.id.action_protection, 0)
                 activity.onBackPressedDispatcher.onBackPressed()
                 assertEquals(R.id.nav_saved, navigation.selectedItemId)
                 assertEquals(View.VISIBLE, panel.visibility)
@@ -55,7 +59,7 @@ class AppWorkflowTest {
                 assertEquals(View.GONE, panel.visibility)
                 assertEquals(R.id.nav_home, navigation.selectedItemId)
                 assertEquals(View.GONE, toolbar.visibility)
-                navigation.menu.performIdentifierAction(R.id.action_more, 0)
+                toolbar.menu.performIdentifierAction(R.id.action_more, 0)
                 assertEquals("More keeps the active destination selected", R.id.nav_home, navigation.selectedItemId)
             }
         }

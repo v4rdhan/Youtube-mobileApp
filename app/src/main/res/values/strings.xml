@@ -4,6 +4,11 @@
     <string name="screen_off_playback">Audio keeps playing with the screen off</string>
     <string name="pause_playback">Pause</string>
     <string name="home">Home</string>
+    <string name="explore">Explore</string>
+    <string name="channels">Channels</string>
+    <string name="library">Library</string>
+    <string name="watch_shorts">Watch Shorts</string>
+    <string name="library_detail">Your videos, ready when you are.</string>
     <string name="shorts">Shorts</string>
     <string name="saved">Saved</string>
     <string name="settings">Protection</string>

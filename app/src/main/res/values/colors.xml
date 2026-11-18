@@ -1,0 +1,8 @@
+<resources>
+    <color name="stream_red">#DF1F26</color>
+    <color name="stream_background">#111111</color>
+    <color name="stream_panel">#262626</color>
+    <color name="stream_foreground">#FAFAFA</color>
+    <color name="stream_secondary">#ABABAB</color>
+    <color name="stream_outline">#646464</color>
+</resources>

@@ -6,7 +6,7 @@ import android.webkit.WebView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.webkit.WebViewFeature
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.materialswitch.MaterialSwitch
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference
 class YouTubePlayerTest {
     @Test fun filteredStartupWithoutAdMarkerRetriesOnceOnlyWithProtectionEnabled() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { it.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0) }
+            scenario.onActivity { it.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0) }
             val deadline = System.currentTimeMillis() + 15_000
             var ready = false
             while (!ready && System.currentTimeMillis() < deadline) {
@@ -31,10 +31,10 @@ class YouTubePlayerTest {
             try {
                 for (enabled in listOf(true, false)) {
                     scenario.onActivity { activity ->
-                        activity.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0)
+                        activity.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0)
                         toggle(activity).isChecked = enabled
                         activity.onBackPressedDispatcher.onBackPressed()
-                        activity.findViewById<WebView>(R.id.webview).loadDataWithBaseURL(
+                        activity.findViewById<WebView>(R.id.webview).apply { stopLoading() }.loadDataWithBaseURL(
                             "https://m.youtube.com/watch?v=fixture",
                             """<!doctype html><html><body>
                               <div id="movie_player" class="html5-video-player"><video></video></div>
@@ -83,7 +83,7 @@ class YouTubePlayerTest {
                 }
             } finally {
                 scenario.onActivity {
-                    it.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0)
+                    it.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0)
                     toggle(it).isChecked = true
                 }
             }
@@ -92,7 +92,7 @@ class YouTubePlayerTest {
 
     @Test fun activeAndBlockedPrerollsRecoverOnlyWithProtectionEnabled() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { it.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0) }
+            scenario.onActivity { it.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0) }
             val deadline = System.currentTimeMillis() + 15_000
             var ready = false
             while (!ready && System.currentTimeMillis() < deadline) {
@@ -103,14 +103,14 @@ class YouTubePlayerTest {
             try {
                 for (enabled in listOf(true, false)) {
                     scenario.onActivity { activity ->
-                        activity.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0)
+                        activity.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0)
                         toggle(activity).isChecked = enabled
                         activity.onBackPressedDispatcher.onBackPressed()
                     }
                     for (skipAvailable in listOf(true, false)) {
                         val token = "$enabled-$skipAvailable"
                         scenario.onActivity { activity ->
-                            activity.findViewById<WebView>(R.id.webview).loadDataWithBaseURL(
+                            activity.findViewById<WebView>(R.id.webview).apply { stopLoading() }.loadDataWithBaseURL(
                                 "https://m.youtube.com/watch?v=fixture",
                                 """<!doctype html><html><body>
                                   <div id="movie_player" class="html5-video-player ad-showing">
@@ -171,7 +171,7 @@ class YouTubePlayerTest {
                 }
             } finally {
                 scenario.onActivity {
-                    it.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0)
+                    it.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0)
                     toggle(it).isChecked = true
                 }
             }
@@ -180,7 +180,7 @@ class YouTubePlayerTest {
 
     @Test fun playerFilteringRunsBeforePlaybackAndFollowsProtectionSwitch() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { it.findViewById<BottomNavigationView>(R.id.navigation).menu.performIdentifierAction(R.id.action_protection, 0) }
+            scenario.onActivity { it.findViewById<MaterialToolbar>(R.id.toolbar).menu.performIdentifierAction(R.id.action_protection, 0) }
             val deadline = System.currentTimeMillis() + 15_000
             var ready = false
             while (!ready && System.currentTimeMillis() < deadline) {
@@ -192,7 +192,7 @@ class YouTubePlayerTest {
                 for ((index, enabled) in listOf(true, false, true).withIndex()) {
                     scenario.onActivity { activity ->
                         toggle(activity).isChecked = enabled
-                        activity.findViewById<WebView>(R.id.webview).loadDataWithBaseURL(
+                        activity.findViewById<WebView>(R.id.webview).apply { stopLoading() }.loadDataWithBaseURL(
                             YouTubeUrls.HOME,
                             """<!doctype html><html><body><script>
                               function startupResponse() {
@@ -230,6 +230,8 @@ class YouTubePlayerTest {
                         Thread.sleep(100)
                     }
                     assertEquals("Fixture loaded", index, result.optInt("token", -1))
+                    assertTrue("The visual theme remains installed with Protection on or off", result.getBoolean("themed"))
+                    assertEquals("Live content keeps the reference's dark background", "rgb(17, 17, 17)", result.getString("background"))
                     assertEquals("Protection hook follows switch", enabled, result.optBoolean("installed"))
                     assertEquals("Known player ad fields follow switch", !enabled, result.getBoolean("hasAds"))
                     if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
@@ -256,6 +258,8 @@ class YouTubePlayerTest {
               return {
                 token: window.fixtureToken,
                 complete: document.readyState === 'complete',
+                themed: !!document.getElementById('streamshield-theme'),
+                background: getComputedStyle(document.body).backgroundColor,
                 installed: !!window.__streamshieldPlayerProtection,
                 startupHadAds: window.startupHadAds,
                 startupHadHeartbeat: window.startupHadHeartbeat,

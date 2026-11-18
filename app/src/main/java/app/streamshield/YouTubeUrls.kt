@@ -6,6 +6,9 @@ import java.net.URLEncoder
 object YouTubeUrls {
     const val HOME = "https://m.youtube.com/"
     const val SHORTS = "https://m.youtube.com/shorts"
+    // The retired /feed/explore endpoint redirects to Home on the mobile site.
+    const val EXPLORE = "https://m.youtube.com/results?search_query=trending&sp=EgIQAQ%3D%3D"
+    const val CHANNELS = "https://m.youtube.com/results?search_query=creators&sp=EgIQAg%3D%3D"
     private val hosts = setOf("youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be")
     private val videoId = Regex("[A-Za-z0-9_-]{11}")
 

@@ -6,7 +6,8 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:minHeight="64dp" android:visibility="gone"
-        app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+        app:menu="@menu/library_actions"
+        app:titleTextAppearance="@style/TextAppearance.Material3.TitleMedium" />
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progress" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:indeterminate="true" app:trackThickness="2dp" />
@@ -18,6 +19,12 @@
     </FrameLayout>
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/navigation" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:background="?attr/colorSurface" app:menu="@menu/navigation"
+        android:background="@drawable/navigation_background" android:minHeight="76dp"
+        app:elevation="0dp" app:menu="@menu/navigation"
+        app:itemIconSize="24dp" app:itemIconTint="@color/navigation_item"
+        app:itemTextColor="@color/navigation_item"
+        app:itemTextAppearanceActive="@style/TextAppearance.StreamShield.Navigation"
+        app:itemTextAppearanceInactive="@style/TextAppearance.StreamShield.Navigation"
+        app:itemPaddingTop="12dp" app:itemPaddingBottom="12dp"
         app:itemHorizontalTranslationEnabled="false" app:labelVisibilityMode="labeled" />
 </LinearLayout>

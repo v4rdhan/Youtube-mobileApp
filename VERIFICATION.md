@@ -1,5 +1,21 @@
 # Verification
 
+Navigation icon refinement checked on 18 November 2026:
+
+- Redrew the four navigation symbols to match the supplied reference silhouettes, with consistent 1.25dp outlines and filled selected states. Updated native Back to a chevron and More to small solid dots.
+- Debug APK builds with `assembleDebug -x buildRust --offline`, retaining the existing native libraries. Inspected all four selected states on the Android 15 phone emulator; internal cutouts remain visible under navigation tinting. Captures are `.impeccable/review/phone-icons-{home,explore,channels,library}.png`; `.impeccable/review/navigation-icons-preview.png` combines their navigation bars for comparison. No new tests were added for this drawable-only refinement.
+
+Reference-led interface update checked on 18 November 2026:
+
+- Debug APK builds; all 5 Kotlin unit tests pass. Android lint completes with 0 errors and 14 warnings.
+- Android 15/API 35 phone emulator captures confirm the neutral black/charcoal theme, red actions, rounded video artwork, compact discovery and channel rows, and four native destinations: Home, Explore, Channels, and Library. There is no create/add navigation action.
+- Explore uses live video-filtered YouTube discovery results; Channels uses live channel-filtered results. The old mobile Explore and channel-directory URLs redirected to Home during verification. Native selection follows the site's encoded channel-filter URL without reloading the page.
+- Library retains local saved videos and adds the Shorts shortcut. Protection and More are accessible through Library's toolbar. The navigation/protection workflow, two screen-off playback fixtures, and three native-engine checks passed on the emulator.
+- The full device suite is not clean: three player fixtures intermittently time out awaiting JavaScript callbacks when run together. The player-data/theming fixture passed in isolation, including the dark background with Protection enabled and disabled. Stopping the live page before loading fixtures did not resolve the suite-level timeouts. This change does not claim a complete playback regression pass.
+- Reviewed actual emulator captures: `.impeccable/review/phone-reference-home.png`, `phone-reference-explore.png`, `phone-reference-channels.png`, `phone-reference-library.png`, `phone-reference-large-text.png`, and `phone-reference-protection.png`. The last two use font scale 1.3; original font scale 1.0 and night-mode setting were restored. Home's empty recommendations come from the signed-out live site.
+- The reference direction is recorded in `.impeccable/surfaces/app-src-main-java-app-streamshield-mainactivity-kt.md`. Existing global design documentation remains preserved pending a separate documentation decision.
+- The independent visual review identified one contrast issue in live-site secondary text. Updated selectors remove the channel metadata's inherited 0.6 opacity and brighten the Home search prompt. Recaptured text renders #ABABAB, approximately 8.2:1 on the page and 6.3:1 on the search field. The reviewer's final disposition is `ship` for that resolved contrast fix, with no visible regressions from the fix.
+
 YTPro-based startup-ad protection added on 10 November 2026 after inspecting the supplied `YTPro-main.zip`:
 
 - Adapted `scripts/script.js`'s `adBreakHeartbeatParams` removal and dedicated ad-endpoint blocking. Player ad-break, ad-view, ad-statistics, and DoubleClick fetches are stopped before dispatch, including POST requests; blocked fetches resolve to a consumable JSON `Response`. The starter rules now also block the ad-break endpoint and hide `ad-slot-renderer`. The MIT notice is retained in `THIRD_PARTY_NOTICES.md`.

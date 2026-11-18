@@ -1,21 +1,25 @@
 <resources>
     <style name="Theme.StreamShield" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">#B4E098</item>
-        <item name="colorOnPrimary">#173807</item>
-        <item name="colorPrimaryContainer">#2D501F</item>
-        <item name="colorOnPrimaryContainer">#CFF5B5</item>
-        <item name="colorSecondary">#C2CCB7</item>
-        <item name="colorOnSecondary">#2D3528</item>
-        <item name="colorSecondaryContainer">#414B3A</item>
-        <item name="colorOnSecondaryContainer">#DEE8D2</item>
-        <item name="colorSurface">#121510</item>
-        <item name="colorSurfaceVariant">#42483D</item>
-        <item name="colorOnSurface">#E3E6DC</item>
-        <item name="colorOnSurfaceVariant">#C3C9BA</item>
-        <item name="colorOutline">#8D9485</item>
+        <item name="colorPrimary">@color/stream_red</item>
+        <item name="colorOnPrimary">@color/stream_foreground</item>
+        <item name="colorPrimaryContainer">#521B1D</item>
+        <item name="colorOnPrimaryContainer">#FFDAD9</item>
+        <item name="colorSecondary">@color/stream_foreground</item>
+        <item name="colorOnSecondary">@color/stream_background</item>
+        <item name="colorSecondaryContainer">@color/stream_panel</item>
+        <item name="colorOnSecondaryContainer">@color/stream_foreground</item>
+        <item name="colorSurface">@color/stream_background</item>
+        <item name="colorSurfaceVariant">@color/stream_panel</item>
+        <item name="colorOnSurface">@color/stream_foreground</item>
+        <item name="colorOnSurfaceVariant">@color/stream_secondary</item>
+        <item name="colorOutline">@color/stream_outline</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowBackground">?attr/colorSurface</item>
+    </style>
+    <style name="TextAppearance.StreamShield.Navigation" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans</item>
     </style>
 </resources>

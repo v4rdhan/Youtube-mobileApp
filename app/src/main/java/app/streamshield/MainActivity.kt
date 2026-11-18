@@ -68,6 +68,32 @@ class MainActivity : AppCompatActivity() {
     private var documentScript: ScriptHandler? = null
     private val playerScript by lazy { assets.open("youtube-player.js").bufferedReader().use { it.readText() } }
     private val backgroundScript by lazy { assets.open("background-playback.js").bufferedReader().use { it.readText() } }
+    private val themeScript by lazy {
+        val stylesheet = assets.open("youtube-theme.css").bufferedReader().use { it.readText() }
+        """
+            (function() {
+              function applyTheme() {
+                const root = document.documentElement;
+                root.setAttribute('dark', 'true');
+                let style = document.getElementById('streamshield-theme');
+                if (!style) {
+                  style = document.createElement('style');
+                  style.id = 'streamshield-theme';
+                  root.appendChild(style);
+                }
+                const css = ${JSONObject.quote(stylesheet)};
+                if (style.textContent !== css) style.textContent = css;
+              }
+              if (document.documentElement) applyTheme();
+              else {
+                const observer = new MutationObserver(function() {
+                  if (document.documentElement) { observer.disconnect(); applyTheme(); }
+                });
+                observer.observe(document, { childList: true, subtree: true });
+              }
+            })();
+        """.trimIndent()
+    }
     private var backgroundPlaybackSupported = false
     private var playbackActive = false
     private var resumed = false
@@ -107,6 +133,8 @@ class MainActivity : AppCompatActivity() {
         web = findViewById(R.id.webview)
         nativeScreen = findViewById(R.id.native_screen)
         navigation = findViewById(R.id.navigation)
+        navigation.isItemActiveIndicatorEnabled = false
+        navigation.clipToOutline = true
         protection = ProtectionManager(this)
         savedVideos = SavedVideos(this)
         pendingUrl = incomingUrl(intent) ?: state?.getString("url")?.let(YouTubeUrls::normalize) ?: YouTubeUrls.HOME
@@ -120,16 +148,20 @@ class MainActivity : AppCompatActivity() {
         configureWebView()
         ContextCompat.registerReceiver(this, playbackReceiver, IntentFilter(PlaybackService.ACTION_PAUSE), ContextCompat.RECEIVER_NOT_EXPORTED)
         toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_protection -> showSettings()
+                R.id.action_more -> showMore(toolbar.findViewById(R.id.action_more))
+                else -> return@setOnMenuItemClickListener false
+            }
+            true
+        }
         navigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> navigate(YouTubeUrls.HOME)
-                R.id.nav_shorts -> navigate(YouTubeUrls.SHORTS)
+                R.id.nav_explore -> navigate(YouTubeUrls.EXPLORE)
+                R.id.nav_channels -> navigate(YouTubeUrls.CHANNELS)
                 R.id.nav_saved -> showSaved()
-                R.id.action_protection -> { showSettings(); return@setOnItemSelectedListener false }
-                R.id.action_more -> {
-                    showMore(navigation.findViewById(R.id.action_more))
-                    return@setOnItemSelectedListener false
-                }
             }
             true
         }
@@ -193,6 +225,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
                 stopBackgroundPlayback()
                 pageUrl = url ?: YouTubeUrls.HOME
+                updateNavigation()
                 errorVisible = false
                 if (screen == Screen.BROWSER) nativeScreen.isVisible = false
                 progress.isVisible = screen == Screen.BROWSER
@@ -201,6 +234,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
                 pageUrl = url ?: pageUrl
+                updateNavigation()
                 injectCosmetics()
                 updateBack()
             }
@@ -283,7 +317,7 @@ class MainActivity : AppCompatActivity() {
     private fun pageScript(selectors: String): String {
         val player = if (protection.enabled && protection.ready) playerScript else ""
         val background = if (backgroundPlaybackSupported) backgroundScript else ""
-        return background + "\n" + player + "\n" + cssScript(selectors)
+        return background + "\n" + player + "\n" + themeScript + "\n" + cssScript(selectors)
     }
 
     private fun refreshDocumentScript() {
@@ -302,8 +336,23 @@ class MainActivity : AppCompatActivity() {
     private fun navigate(url: String) {
         pendingUrl = url
         showBrowser()
+        updateNavigation(url)
         if (rendererGone) { recreate(); return }
         if (engineStarted) web.loadUrl(url)
+    }
+
+    private fun updateNavigation(url: String = pageUrl) {
+        if (screen != Screen.BROWSER) return
+        val uri = Uri.parse(url)
+        val destination = when (uri.path) {
+            "/results" -> if (Uri.decode(uri.getQueryParameter("sp")) == "EgIQAg==") R.id.nav_channels else R.id.nav_explore
+            "/feed/explore", "/feed/trending" -> R.id.nav_explore
+            "/feed/channels", "/feed/subscriptions" -> R.id.nav_channels
+            "/", "" -> R.id.nav_home
+            else -> navigation.selectedItemId.takeUnless { it == R.id.nav_saved } ?: R.id.nav_home
+        }
+        // Updating the checked state must not trigger a second page load.
+        navigation.menu.findItem(destination).isChecked = true
     }
 
     private fun showBrowser() {
@@ -328,6 +377,8 @@ class MainActivity : AppCompatActivity() {
         navigation.isVisible = target == Screen.SAVED
         toolbar.isVisible = true
         toolbar.setTitle(title)
+        toolbar.menu.findItem(R.id.action_protection).isVisible = target != Screen.SETTINGS
+        toolbar.menu.findItem(R.id.action_more).isVisible = target != Screen.SETTINGS
         toolbar.setNavigationIcon(R.drawable.ic_back)
         toolbar.navigationContentDescription = getString(androidx.appcompat.R.string.abc_action_bar_up_description)
         nativeScreen.removeAllViews()
@@ -421,11 +472,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSaved() {
-        val column = nativePage(R.string.saved, Screen.SAVED)
-        column.addView(label(getString(R.string.saved_title), com.google.android.material.R.style.TextAppearance_Material3_HeadlineMedium))
+        val column = nativePage(R.string.library, Screen.SAVED)
+        column.addView(label(getString(R.string.library_detail), com.google.android.material.R.style.TextAppearance_Material3_BodyLarge))
+        column.addView(button(R.string.watch_shorts) { navigate(YouTubeUrls.SHORTS) }.apply {
+            setIconResource(R.drawable.ic_shorts)
+        }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(12) })
+        column.addView(label(getString(R.string.saved_title), com.google.android.material.R.style.TextAppearance_Material3_TitleLarge), sectionSpace())
         val videos = savedVideos.all()
         if (videos.isEmpty()) {
-            column.addView(label(getString(R.string.saved_empty), com.google.android.material.R.style.TextAppearance_Material3_TitleLarge), sectionSpace())
+            column.addView(label(getString(R.string.saved_empty), com.google.android.material.R.style.TextAppearance_Material3_TitleMedium), sectionSpace())
             column.addView(body(getString(R.string.saved_detail)))
         }
         videos.forEach { video ->
@@ -457,7 +512,11 @@ class MainActivity : AppCompatActivity() {
         popup.menu.add(0, 4, 3, R.string.open_browser)
         popup.setOnMenuItemClickListener { choice ->
             when (choice.itemId) {
-                1 -> message(if (savedVideos.add(pageTitle, pageUrl)) R.string.saved_feedback else R.string.save_first)
+                1 -> {
+                    val saved = savedVideos.add(pageTitle, pageUrl)
+                    if (saved && screen == Screen.SAVED) showSaved()
+                    message(if (saved) R.string.saved_feedback else R.string.save_first)
+                }
                 2 -> { hideError(); if (rendererGone) recreate() else if (engineStarted) web.reload() }
                 3 -> startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"; putExtra(Intent.EXTRA_TEXT, pageUrl)
@@ -470,7 +529,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateProtectionIcon() {
-        val menu = navigation.menu.findItem(R.id.action_protection)
+        val menu = toolbar.menu.findItem(R.id.action_protection)
         menu.icon?.mutate()?.setTint(color(if (protection.enabled && protection.ready)
             androidx.appcompat.R.attr.colorPrimary else com.google.android.material.R.attr.colorOnSurfaceVariant))
         menu.contentDescription = getString(if (protection.enabled && protection.ready) R.string.protection_on else R.string.protection_off)

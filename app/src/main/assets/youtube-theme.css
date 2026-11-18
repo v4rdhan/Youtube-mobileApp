@@ -1,0 +1,331 @@
+/* StreamShield's presentation layer. This remains active with protection off. */
+:root,
+html[dark] {
+  color-scheme: dark;
+  --ss-background: #111111;
+  --ss-panel: #262626;
+  --ss-text: #fafafa;
+  --ss-secondary: #ababab;
+  --ss-red: #df1f26;
+  --yt-spec-base-background: var(--ss-background) !important;
+  --yt-spec-raised-background: var(--ss-panel) !important;
+  --yt-spec-menu-background: var(--ss-panel) !important;
+  --yt-spec-general-background-a: var(--ss-background) !important;
+  --yt-spec-general-background-b: var(--ss-background) !important;
+  --yt-spec-general-background-c: var(--ss-panel) !important;
+  --yt-spec-brand-background-primary: var(--ss-background) !important;
+  --yt-spec-brand-background-solid: var(--ss-background) !important;
+  --yt-spec-text-primary: var(--ss-text) !important;
+  --yt-spec-text-secondary: var(--ss-secondary) !important;
+  --yt-spec-text-disabled: #888888 !important;
+  --yt-spec-icon-active-other: var(--ss-text) !important;
+  --yt-spec-icon-inactive: var(--ss-secondary) !important;
+  --yt-spec-badge-chip-background: var(--ss-panel) !important;
+  --yt-spec-call-to-action: var(--ss-text) !important;
+  --yt-spec-themed-blue: var(--ss-text) !important;
+  --yt-spec-themed-green: var(--ss-text) !important;
+  --yt-spec-static-brand-red: var(--ss-red) !important;
+  --yt-spec-brand-button-background: var(--ss-red) !important;
+  --yt-spec-static-brand-white: var(--ss-text) !important;
+  --yt-spec-10-percent-layer: #ffffff14 !important;
+  --yt-spec-20-percent-layer: #ffffff26 !important;
+}
+
+html,
+body,
+ytm-app,
+ytm-browse,
+ytm-search,
+ytm-watch,
+ytm-mobile-topbar-renderer,
+ytm-mobile-topbar-renderer .mobile-topbar-header,
+ytm-header-bar,
+ytm-pivot-bar-renderer {
+  background-color: var(--ss-background) !important;
+  color: var(--ss-text) !important;
+}
+
+body {
+  font-family: Roboto, "Noto Sans", sans-serif;
+  -webkit-tap-highlight-color: #ffffff1f;
+  accent-color: var(--ss-red);
+}
+
+/* Native navigation replaces every mobile site's bottom-bar variant. */
+ytm-pivot-bar-renderer,
+ytm-app > .pivot-bar,
+ytm-bottom-navigation-renderer {
+  display: none !important;
+}
+
+ytm-app {
+  padding-bottom: 0 !important;
+}
+
+/* Keep the real header, search and account controls. */
+ytm-mobile-topbar-renderer,
+ytm-header-bar {
+  border-bottom: 0 !important;
+}
+
+ytm-mobile-topbar-renderer input,
+ytm-searchbox input,
+ytm-search-box-renderer input {
+  color: var(--ss-text) !important;
+  background: var(--ss-background) !important;
+  border: 1px solid #646464 !important;
+  border-radius: 16px !important;
+  caret-color: var(--ss-red);
+}
+
+input::placeholder,
+.search-bar-entry-point-text {
+  color: var(--ss-secondary) !important;
+  opacity: 1 !important;
+}
+
+/* Open feed spacing and inset, softly rounded video artwork. */
+ytm-rich-item-renderer,
+ytm-video-with-context-renderer {
+  margin-bottom: 16px !important;
+}
+
+ytm-rich-item-renderer > ytm-video-with-context-renderer {
+  margin-bottom: 0 !important;
+}
+
+ytm-video-with-context-renderer > a,
+ytm-video-with-context-renderer > .media-item-thumbnail-container,
+ytm-video-with-context-renderer .video-thumbnail-container-large,
+ytm-rich-item-renderer .video-thumbnail-container-large {
+  margin-inline: 16px !important;
+  width: calc(100% - 32px) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  aspect-ratio: 16 / 9;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+
+ytm-video-with-context-renderer .video-thumbnail-container-large .video-thumbnail-container-large {
+  margin-inline: 0 !important;
+  width: 100% !important;
+}
+
+ytm-video-with-context-renderer .media-item-info {
+  padding-inline: 0 !important;
+  padding-top: 12px !important;
+}
+
+ytm-video-with-context-renderer .media-item-details {
+  padding-inline: 16px !important;
+}
+
+/* Explore and search use the reference's compact, image-led video list. */
+ytm-search ytm-video-with-context-renderer {
+  margin: 0 16px 20px !important;
+}
+
+ytm-search ytm-video-with-context-renderer ytm-media-item {
+  display: flex !important;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+ytm-search ytm-video-with-context-renderer .media-item-thumbnail-container {
+  flex: 0 0 42%;
+  min-width: 0;
+}
+
+ytm-search ytm-video-with-context-renderer .video-thumbnail-container-large {
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+}
+
+ytm-search ytm-video-with-context-renderer .media-item-details {
+  flex: 1;
+  min-width: 0;
+  padding: 0 !important;
+  margin-top: 0 !important;
+}
+
+ytm-search ytm-video-with-context-renderer .media-channel {
+  display: none !important;
+}
+
+ytm-search ytm-video-with-context-renderer .media-item-info {
+  padding: 0 !important;
+}
+
+ytm-search ytm-video-with-context-renderer .media-item-headline {
+  font-size: 1.2rem !important;
+  line-height: 1.4 !important;
+  -webkit-line-clamp: 3 !important;
+}
+
+ytm-search ytm-video-with-context-renderer .ytmBadgeAndBylineRendererHost {
+  font-size: 1.1rem !important;
+}
+
+ytm-compact-video-renderer .video-thumbnail-container-compact,
+ytm-compact-video-renderer .compact-media-item-image,
+ytm-video-with-context-renderer .video-thumbnail-img,
+ytm-compact-video-renderer img {
+  border-radius: 12px !important;
+}
+
+ytm-compact-video-renderer {
+  padding-block: 8px !important;
+}
+
+.media-item-headline,
+.compact-media-item-headline,
+.slim-video-metadata-title {
+  color: var(--ss-text) !important;
+  font-weight: 600 !important;
+}
+
+.media-item-byline,
+.compact-media-item-byline,
+.media-item-stats,
+.compact-media-item-stats {
+  color: var(--ss-secondary) !important;
+}
+
+/* Topic pills and channel tabs retain YouTube's selected state. */
+ytm-chip-cloud-chip-renderer {
+  border-radius: 999px !important;
+  border-color: transparent !important;
+  background: var(--ss-panel) !important;
+  color: var(--ss-secondary) !important;
+}
+
+ytm-chip-cloud-chip-renderer[selected],
+ytm-chip-cloud-chip-renderer[aria-selected="true"] {
+  background: #383838 !important;
+  color: var(--ss-text) !important;
+}
+
+ytm-tab-renderer[aria-selected="true"] {
+  color: var(--ss-text) !important;
+  border-bottom-color: var(--ss-red) !important;
+}
+
+/* Only the unsubscribed action is red; never disguise subscription state. */
+ytm-subscribe-button-renderer button[aria-pressed="false"],
+ytm-subscribe-button-renderer.is-not-subscribed button,
+ytm-subscribe-button-renderer .yt-spec-button-shape-next--call-to-action {
+  background-color: var(--ss-red) !important;
+  color: var(--ss-text) !important;
+  border-radius: 999px !important;
+}
+
+/* The live channel directory follows the reference's avatar / name / action rows. */
+ytm-compact-channel-renderer {
+  padding: 8px 16px !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemHost {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemImage {
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+ytm-compact-channel-renderer ytm-compact-thumbnail {
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemMetadata {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemMetadataContent {
+  min-width: 0;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemHeadline {
+  font-size: 1.3rem !important;
+  font-weight: 500 !important;
+  color: var(--ss-text) !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemByline {
+  font-size: 1.1rem !important;
+  color: var(--ss-secondary) !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemSubhead {
+  opacity: 1 !important;
+}
+
+ytm-compact-channel-renderer .YtmCompactMediaItemByline .ytAttributedStringHost {
+  color: var(--ss-secondary) !important;
+}
+
+ytm-subscribe-button-renderer yt-light-shape {
+  display: none !important;
+}
+
+ytm-compact-channel-renderer .channel-subscribe-button {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 !important;
+}
+
+ytm-compact-channel-renderer .ytwAnimatedSubscribeButtonContentContainer {
+  width: auto !important;
+}
+
+ytm-compact-channel-renderer .channel-subscribe-button button {
+  min-height: 48px;
+  padding-inline: 12px !important;
+  font-size: 1.1rem !important;
+}
+
+ytm-slim-video-action-bar-renderer,
+ytm-slim-owner-renderer,
+ytm-slim-video-metadata-section-renderer {
+  background-color: var(--ss-background) !important;
+}
+
+::selection {
+  background: #9d2228;
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ss-text) !important;
+  outline-offset: 3px;
+}
+
+/* Leave the actual video, Shorts and fullscreen player geometry untouched. */
+@media (min-width: 600px) {
+  ytm-video-with-context-renderer > a,
+  ytm-video-with-context-renderer .video-thumbnail-container-large {
+    margin-inline: 12px !important;
+    width: calc(100% - 24px) !important;
+  }
+}

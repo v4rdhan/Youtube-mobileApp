@@ -5,9 +5,9 @@ A Kotlin Android app for browsing and playing YouTube's live mobile site, with t
 ## Features
 
 - Live YouTube browsing, search, Shorts, and playback in Android WebView. No API key or separate backend.
-- Native dark Material 3 interface, fullscreen video, Android Back handling, and shared YouTube links.
+- Reference-inspired black and charcoal interface with red actions, rounded live video thumbnails, fullscreen video, Android Back handling, and shared YouTube links.
 - Audio continues with the screen off or another app open. Active playback has a media notification with a Pause action; pausing, opening a native app panel, or closing the app task ends background playback.
-- YouTube's own header and search, with a separate native bottom bar for Home, Shorts, Saved, Protection, and More. The site's duplicate bottom navigation is hidden even when protection is off.
+- YouTube's own header and search, with a rounded native bottom bar for Home, Explore, Channels, and Library. There is no add button. Library contains local saved videos, a Shorts shortcut, and toolbar actions for Protection and More (save, reload, share, and open in browser). The site's duplicate bottom navigation stays hidden and the visual theme stays active even when protection is off.
 - Rust request filtering and site-specific cosmetic CSS rules. Video URLs and streams are left to WebView; there is no stream extraction service.
 - YouTube player-data filtering removes known ad fields from initial playback data and subsequent player responses while protection is enabled. Startup filtering also covers inline `playerResponse`, serialized `ytplayer.config` responses, and initial objects populated in place before they are read through their global.
 - Startup protection also removes `adBreakHeartbeatParams` and blocks dedicated ad fetches, including `/youtubei/v1/player/ad_break` POST requests, using an approach adapted from the supplied YTPro ZIP. Blocked fetches return an empty JSON object; content requests retain their original responses.

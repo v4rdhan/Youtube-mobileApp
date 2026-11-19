@@ -1,5 +1,14 @@
 # Verification
 
+Topic buttons and feed refinement checked on 19 November 2026:
+
+- Debug APK built and installed on the Android 15/API 35 phone emulator. Android lint completed with 0 errors and 14 existing warnings. The final build uses the unchanged, checked-in native libraries; this change contains presentation CSS and a navigation drawable outline.
+- Live Home exposed the overlapping outer chip / inner button backgrounds reported by the user and a newer `ytLockupViewModelVertical` feed layout that the previous thumbnail selectors missed. Topic surfaces now have 10px corners and a 32px visual height within a 48px target, with 8px gaps and transparent inner backgrounds. Modern feed thumbnails have 16px corners and 16px gutters; duplicate wrapper spacing was removed, leaving 16px between consecutive cards.
+- Verified real Gaming activation, updated `aria-selected` state, and the resulting live gaming feed. Horizontal category scrolling reaches the final Posts chip. Content stays within the viewport at 411 CSS px with normal text and 360 CSS px with font scale 1.3. Topic text increases from 12px to 15.6px at the larger scale. Restored emulator display size and font scale after checking.
+- Final installed-APK captures: `.impeccable/review/phone-topic-home.png`, `phone-topic-gaming.png`, `phone-topic-narrow-large-text.png`, and `phone-topic-scroll.png`. Captures show live third-party content, not bundled or generated app artwork. The earlier interim captures were discarded.
+- The player and protection code are unchanged; this presentation refinement does not claim a fresh full playback regression pass. Design decisions are recorded in the existing surface brief; pre-existing global design-document drift remains preserved.
+- Independent Impeccable finish review: `ship` at this refinement's scope, with no material fixes. The reviewer inspected both user references and all four final captures. A near-top-edge tap outside All's painted surface also changed selection from Gaming to All, confirming the full-height topic target remains interactive.
+
 Navigation icon refinement checked on 18 November 2026:
 
 - Redrew the four navigation symbols to match the supplied reference silhouettes, with consistent 1.25dp outlines and filled selected states. Updated native Back to a chevron and More to small solid dots.

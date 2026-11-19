@@ -30,3 +30,9 @@ The site supplies live thumbnails, titles, accounts, and playback; it is not rep
 ## Navigation icons
 
 Match the supplied reference silhouettes: a rounded pentagonal house with a short door mark, a rounded hexagonal compass with a diagonal lens, paired circular heads with oval bodies, and stacked rounded video-library frames. All four destinations have outlined inactive and filled active vector drawables. Use a consistent 1.25dp stroke on a 24dp canvas; preserve transparent internal details through native icon tinting with even-odd paths. Native Back uses the reference's small chevron, and More uses three small solid dots. Touch targets and the four-item navigation remain unchanged.
+
+## Topic controls and feed refinement, 19 November 2026
+
+The user's new phone screenshot shows oversized circular topic backgrounds behind the site's own rectangular buttons. Follow the compact controls in `C:/Users/arjun/Downloads/Crisp YouTube Dark UI Mockup.png`: one charcoal surface per category, 10px corners, 12px horizontal padding, 8px gaps, and medium-weight labels. A 32px visible surface sits inside a 48px touch target. Selected categories keep a slightly lighter charcoal fill and a subtle inset outline; selection continues to come from YouTube's real state. Nested site buttons are transparent so their default selected fill cannot overlap the app's shape. Keep horizontal scrolling and real category actions.
+
+Match the same reference's inset, rounded video artwork and compact metadata. Retain the existing four destinations and add a quiet 1dp outline to the charcoal native navigation panel. This is a refinement of the established reference direction; the pre-existing DESIGN.md discrepancy remains outside this change.

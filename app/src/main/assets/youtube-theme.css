@@ -94,6 +94,53 @@ ytm-rich-item-renderer > ytm-video-with-context-renderer {
   margin-bottom: 0 !important;
 }
 
+/* Home's newer lockup layout does not use video-with-context renderers. */
+ytm-rich-item-renderer > yt-lockup-view-model {
+  margin-bottom: 0 !important;
+}
+
+.ytLockupViewModelVertical {
+  box-sizing: border-box !important;
+  padding-inline: 16px !important;
+}
+
+.ytLockupViewModelVertical > .ytLockupViewModelContentImage {
+  display: block !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+}
+
+.ytLockupViewModelVertical > .ytLockupViewModelContentImage > yt-thumbnail-view-model {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.ytLockupViewModelVertical > .ytLockupViewModelMetadata {
+  margin: 10px 0 0 !important;
+}
+
+.ytLockupViewModelVertical .ytLockupMetadataViewModelTitle {
+  color: var(--ss-text) !important;
+  font-size: 1.4rem !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.ytLockupViewModelVertical .ytContentMetadataViewModelMetadataText {
+  color: var(--ss-secondary) !important;
+  font-size: 1.1rem !important;
+  line-height: 1.4 !important;
+}
+
+.ytLockupViewModelVertical .ytSpecAvatarShapeAvatarSizeMedium {
+  width: 32px !important;
+  height: 32px !important;
+}
+
 ytm-video-with-context-renderer > a,
 ytm-video-with-context-renderer > .media-item-thumbnail-container,
 ytm-video-with-context-renderer .video-thumbnail-container-large,
@@ -193,18 +240,94 @@ ytm-compact-video-renderer {
   color: var(--ss-secondary) !important;
 }
 
-/* Topic pills and channel tabs retain YouTube's selected state. */
+/* One compact surface per topic, with a full-height touch target. The live
+   site's nested button must not paint a second background over the chip. */
+ytm-chip-cloud-renderer,
+ytm-feed-filter-chip-bar-renderer {
+  background: var(--ss-background) !important;
+  border: 0 !important;
+}
+
+ytm-chip-cloud-renderer .chip-cloud-chip-row,
+ytm-chip-cloud-renderer .chip-cloud-chip-container,
+ytm-feed-filter-chip-bar-renderer .chip-bar-contents {
+  padding-inline: 16px !important;
+  box-sizing: border-box !important;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+}
+
+/* Explore is already available in the native navigation. */
+ytm-feed-filter-chip-bar-renderer ytm-chip-cloud-chip-renderer[chip-style="STYLE_EXPLORE_LAUNCHER_CHIP"],
+ytm-feed-filter-chip-bar-renderer ytm-chip-divider-renderer {
+  display: none !important;
+}
+
 ytm-chip-cloud-chip-renderer {
-  border-radius: 999px !important;
-  border-color: transparent !important;
-  background: var(--ss-panel) !important;
-  color: var(--ss-secondary) !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 8px 0 0 !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ss-text) !important;
+  font-size: 1.2rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  isolation: isolate;
+}
+
+ytm-chip-cloud-chip-renderer::before {
+  content: "";
+  position: absolute;
+  inset: 8px 0;
+  z-index: -1;
+  border-radius: 10px;
+  background: var(--ss-panel);
+}
+
+ytm-chip-cloud-chip-renderer :is(button, a, .chip-container, .yt-spec-button-shape-next, .ytChipShapeChip) {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  box-shadow: none !important;
+}
+
+ytm-chip-cloud-chip-renderer .chip-text {
+  font: inherit !important;
 }
 
 ytm-chip-cloud-chip-renderer[selected],
-ytm-chip-cloud-chip-renderer[aria-selected="true"] {
-  background: #383838 !important;
+ytm-chip-cloud-chip-renderer[aria-selected="true"],
+ytm-chip-cloud-chip-renderer:has([aria-selected="true"], [aria-pressed="true"]) {
   color: var(--ss-text) !important;
+}
+
+ytm-chip-cloud-chip-renderer[selected]::before,
+ytm-chip-cloud-chip-renderer[aria-selected="true"]::before,
+ytm-chip-cloud-chip-renderer:has([aria-selected="true"], [aria-pressed="true"])::before {
+  background: #3d3d3d;
+  box-shadow: inset 0 0 0 1px #ffffff24;
+}
+
+ytm-chip-cloud-chip-renderer:active::before {
+  background: #484848;
 }
 
 ytm-tab-renderer[aria-selected="true"] {

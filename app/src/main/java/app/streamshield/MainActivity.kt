@@ -68,8 +68,11 @@ class MainActivity : AppCompatActivity() {
     private var documentScript: ScriptHandler? = null
     private val playerScript by lazy { assets.open("youtube-player.js").bufferedReader().use { it.readText() } }
     private val backgroundScript by lazy { assets.open("background-playback.js").bufferedReader().use { it.readText() } }
+    private val channelScript by lazy { assets.open("youtube-channels.js").bufferedReader().use { it.readText() } }
     private val themeScript by lazy {
-        val stylesheet = assets.open("youtube-theme.css").bufferedReader().use { it.readText() }
+        val stylesheet = listOf("youtube-theme.css", "youtube-channels.css").joinToString("\n") { name ->
+            assets.open(name).bufferedReader().use { it.readText() }
+        }
         """
             (function() {
               function applyTheme() {
@@ -317,7 +320,7 @@ class MainActivity : AppCompatActivity() {
     private fun pageScript(selectors: String): String {
         val player = if (protection.enabled && protection.ready) playerScript else ""
         val background = if (backgroundPlaybackSupported) backgroundScript else ""
-        return background + "\n" + player + "\n" + themeScript + "\n" + cssScript(selectors)
+        return background + "\n" + player + "\n" + themeScript + "\n" + channelScript + "\n" + cssScript(selectors)
     }
 
     private fun refreshDocumentScript() {
@@ -344,12 +347,14 @@ class MainActivity : AppCompatActivity() {
     private fun updateNavigation(url: String = pageUrl) {
         if (screen != Screen.BROWSER) return
         val uri = Uri.parse(url)
-        val destination = when (uri.path) {
+        val path = uri.path.orEmpty()
+        val destination = when (path) {
             "/results" -> if (Uri.decode(uri.getQueryParameter("sp")) == "EgIQAg==") R.id.nav_channels else R.id.nav_explore
             "/feed/explore", "/feed/trending" -> R.id.nav_explore
             "/feed/channels", "/feed/subscriptions" -> R.id.nav_channels
             "/", "" -> R.id.nav_home
-            else -> navigation.selectedItemId.takeUnless { it == R.id.nav_saved } ?: R.id.nav_home
+            else -> if (YouTubeUrls.isChannelPath(path)) R.id.nav_channels
+                else navigation.selectedItemId.takeUnless { it == R.id.nav_saved } ?: R.id.nav_home
         }
         // Updating the checked state must not trigger a second page load.
         navigation.menu.findItem(destination).isChecked = true

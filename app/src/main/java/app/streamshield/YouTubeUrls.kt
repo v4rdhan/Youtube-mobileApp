@@ -10,7 +10,10 @@ object YouTubeUrls {
     const val EXPLORE = "https://m.youtube.com/results?search_query=trending&sp=EgIQAQ%3D%3D"
     const val CHANNELS = "https://m.youtube.com/results?search_query=creators&sp=EgIQAg%3D%3D"
     private val hosts = setOf("youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be")
+    private val channelPath = Regex("^/(?:@[^/]+|(?:channel|c|user)/[^/]+)(?:/|$)")
     private val videoId = Regex("[A-Za-z0-9_-]{11}")
+
+    fun isChannelPath(path: String): Boolean = channelPath.containsMatchIn(path)
 
     fun isYouTube(url: String): Boolean = runCatching {
         val uri = URI(url)

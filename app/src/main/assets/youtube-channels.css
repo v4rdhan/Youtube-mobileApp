@@ -1,0 +1,461 @@
+/* Channel pages use live YouTube renderers and retain their original actions. */
+[data-ss-channel-page] {
+  --ss-channel-gutter: clamp(16px, 6vw, 24px);
+  --ss-channel-outline: #666666;
+  --ss-channel-red: #db1420;
+}
+
+.ss-channel-back,
+.ss-channel-directory,
+.ss-channel-biography,
+.ss-channel-filter-label {
+  display: none;
+}
+
+[data-ss-channel-page] .mobile-topbar-header:has(.non-search-mode) > .ss-channel-back,
+[data-ss-channel-page="directory"] .ss-channel-directory button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  width: 48px;
+  min-height: 48px;
+  padding: 0;
+  color: var(--ss-text);
+}
+
+[data-ss-channel-page] .mobile-topbar-header:has(.non-search-mode):has(> .ss-channel-back) > ytm-home-logo {
+  display: none !important;
+}
+
+[data-ss-channel-page="directory"] ytm-app:has(.mobile-topbar-header > .ss-channel-directory) {
+  padding-block-start: 120px !important;
+}
+
+[data-ss-channel-page="directory"] .mobile-topbar-header:has(> .ss-channel-directory) {
+  display: grid !important;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  grid-template-rows: 52px 56px;
+  gap: 8px;
+  height: auto !important;
+  padding: 4px var(--ss-channel-gutter) 0;
+  align-items: center;
+}
+
+[data-ss-channel-page="directory"] .ss-channel-directory {
+  display: contents;
+}
+
+.ss-channel-directory h1 {
+  grid-area: 1 / 2;
+  margin: 0;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.ss-channel-directory form {
+  grid-area: 2 / 1 / 3 / -1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 54px;
+  pointer-events: auto;
+  border: 1px solid var(--ss-channel-outline);
+  border-radius: 18px;
+  background: #171717;
+}
+
+.ss-channel-directory form:focus-within {
+  border-color: var(--ss-text);
+}
+
+.ss-channel-directory input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px 0 0;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--ss-text);
+  font: inherit;
+  font-size: 1.6rem;
+  caret-color: var(--ss-channel-red);
+}
+
+.ss-channel-directory input[type="search"]:focus-visible {
+  outline: 0 !important;
+}
+
+[data-ss-channel-page="directory"] .mobile-topbar-header:has(> .ss-channel-directory) > .mobile-topbar-header-content {
+  grid-area: 1 / 3;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+[data-ss-channel-page="directory"] .mobile-topbar-header:has(> .ss-channel-directory) > yt-searchbox,
+[data-ss-channel-page="directory"] .mobile-topbar-header:has(> .ss-channel-directory) :is(.search-bar, .mobile-topbar-header-voice-search-button) {
+  display: none !important;
+}
+
+[data-ss-channel-page="directory"] ytm-search-sub-menu-renderer:has(.ss-channel-filter-label) {
+  display: flex !important;
+  visibility: visible !important;
+  padding: 0 var(--ss-channel-gutter) !important;
+}
+
+[data-ss-channel-page="directory"] ytm-search-filter-group-renderer:has(> .ss-channel-filter-label) {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-ss-channel-page="directory"] .ss-channel-filter-label {
+  display: inline;
+  font-size: 1.4rem;
+  color: var(--ss-secondary);
+}
+
+[data-ss-channel-page="directory"] ytm-search-sub-menu-renderer ytm-select {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+[data-ss-channel-page="directory"] ytm-search-sub-menu-renderer select {
+  min-height: 48px;
+  font-size: 1.4rem !important;
+  font-weight: 600;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer {
+  padding: 4px var(--ss-channel-gutter) !important;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemHost {
+  --ss-channel-avatar: 48px;
+  min-height: 60px;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemImage,
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer ytm-compact-thumbnail {
+  width: var(--ss-channel-avatar) !important;
+  height: var(--ss-channel-avatar) !important;
+  flex-basis: var(--ss-channel-avatar) !important;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemMetadataContent {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 !important;
+}
+
+[data-ss-channel-page="directory"] .YtmCompactMediaItemHeadline {
+  font-size: 1.5rem !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemSubhead {
+  display: grid !important;
+  gap: 1px;
+  max-height: none !important;
+  margin-top: 3px;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemByline {
+  min-width: 0;
+  font-size: 1.2rem !important;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemByline:nth-child(n + 2),
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .YtmCompactMediaItemByline:nth-child(n + 2) .ytAttributedStringHost {
+  white-space: normal !important;
+}
+
+[data-ss-channel-page="directory"] ytm-compact-channel-renderer .channel-subscribe-button {
+  padding-inline-start: 0 !important;
+}
+
+[data-ss-channel-page="directory"] .ytwAnimatedSubscribeButtonFlexContainer > button,
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions button {
+  box-sizing: border-box;
+  min-height: 48px !important;
+  height: auto !important;
+  padding-inline: 14px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
+  color: var(--ss-text) !important;
+  isolation: isolate;
+}
+
+[data-ss-channel-page="directory"] .ytwAnimatedSubscribeButtonFlexContainer > button::before,
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions button::before {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  z-index: -1;
+  border: 1px solid var(--ss-channel-outline);
+  border-radius: inherit;
+}
+
+[data-ss-channel-page="directory"] .is-not-subscribed .ytwAnimatedSubscribeButtonFlexContainer > button::before,
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions button.ytSpecButtonShapeNextFilled:not([aria-pressed="true"])::before {
+  border-color: transparent;
+  background: var(--ss-channel-red);
+}
+
+[data-ss-channel-page="detail"] ytm-app:has(.ytPageHeaderViewModelContent):has(.mobile-topbar-header > .non-search-mode) {
+  padding-block-start: 0 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-app:has(.ytPageHeaderViewModelContent) > ytm-mobile-topbar-renderer:has(.mobile-topbar-header > .non-search-mode) {
+  position: absolute !important;
+  background: transparent !important;
+}
+
+[data-ss-channel-page="detail"] ytm-app:has(.ytPageHeaderViewModelContent) .mobile-topbar-header:has(> .non-search-mode) {
+  padding-inline: max(0px, calc(var(--ss-channel-gutter) - 12px));
+  background: transparent !important;
+}
+
+[data-ss-channel-page="detail"] ytm-app:has(.ytPageHeaderViewModelContent) .mobile-topbar-title {
+  visibility: hidden;
+}
+
+[data-ss-channel-page="detail"] yt-page-header-view-model {
+  padding: 0 !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelContent {
+  padding-block-start: 54px;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelContent:has(.ytPageHeaderViewModelBannerContainer) {
+  padding-block-start: 0;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelBannerContainer {
+  height: clamp(106px, 29vw, 180px);
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelBannerContainer yt-image-banner-view-model {
+  inset: 0 !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelBannerContainer img {
+  object-fit: cover;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelBannerContainer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#000a, transparent 48%, #11111124 58%, var(--ss-background));
+  pointer-events: none;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelContent > div:has(> .ytPageHeaderViewModelHeadline) {
+  --ss-channel-avatar: 72px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 4px;
+  margin-inline: var(--ss-channel-gutter);
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelBannerContainer + div:has(> .ytPageHeaderViewModelHeadline) {
+  margin-top: -24px;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelHeadline {
+  grid-row: 2;
+  min-height: 0 !important;
+  padding-inline-end: calc(var(--ss-channel-avatar) + 12px);
+  margin: 0 !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelHeadlineImage {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  margin: 0 !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelTitle :is(h1, h2) {
+  font-size: 2.2rem !important;
+  line-height: 1.2 !important;
+  font-weight: 700;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelContentMetadata {
+  margin-top: 4px;
+  color: var(--ss-secondary);
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelContent > div > .ytPageHeaderViewModelHeadlineInfo {
+  display: contents;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions {
+  grid-row: 1;
+  margin: 0 !important;
+  padding-inline-end: calc(var(--ss-channel-avatar) + 12px);
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions .ytFlexibleActionsViewModelActionRow {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions .ytFlexibleActionsViewModelActionRowAction {
+  flex: 0 0 auto !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions button {
+  padding-inline: 20px !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelFlexibleActions yt-light-shape {
+  display: none !important;
+}
+
+[data-ss-channel-page="detail"] .ytPageHeaderViewModelHeadlineInfo:has(> .ss-channel-biography) > :is(.ytPageHeaderViewModelDescription, .ytPageHeaderViewModelAttribution) {
+  display: none !important;
+}
+
+[data-ss-channel-page="detail"] .ss-channel-biography {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 2px;
+  min-height: 48px;
+  padding: 0 4px 0 0;
+  color: var(--ss-text);
+  font: inherit;
+  font-size: 1.3rem;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .single-column-browse-results-tab-bar {
+  border: 0 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .tabGroupShapeTabs {
+  padding-inline: 12px;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .tabGroupShapeSlider {
+  visibility: hidden;
+}
+
+[data-ss-channel-page="detail"] ytm-browse yt-tab-shape {
+  position: relative;
+  color: var(--ss-secondary) !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse yt-tab-shape[aria-selected="true"] {
+  color: var(--ss-text) !important;
+  font-weight: 600 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse yt-tab-shape[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 2px;
+  inset-inline: 16px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--ss-channel-red);
+  pointer-events: none;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-channel-featured-video-renderer > a,
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer > .YtmCompactMediaItemHost {
+  display: grid !important;
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--ss-channel-gutter) !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-channel-featured-video-renderer {
+  padding-inline: 0 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse :is(ytm-channel-featured-video-renderer ytm-thumbnail-cover, ytm-compact-video-renderer .YtmCompactMediaItemImage) {
+  width: 100% !important;
+  min-width: 0;
+  margin: 0 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse :is(ytm-channel-featured-video-renderer ytm-thumbnail-cover, ytm-compact-video-renderer ytm-compact-thumbnail) {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer ytm-compact-thumbnail {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .YtmChannelFeaturedVideoRendererTitle {
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 1.5rem !important;
+  font-weight: 600;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .shelf-header {
+  padding-inline: var(--ss-channel-gutter) !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse .shelf-subtitle {
+  max-height: none !important;
+  line-height: 1.4 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer .YtmCompactMediaItemMetadata {
+  min-width: 0;
+  margin: 0 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer .YtmCompactMediaItemHeadline {
+  max-height: none !important;
+  color: var(--ss-text) !important;
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  -webkit-line-clamp: 3 !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer .YtmCompactMediaItemSubhead {
+  max-height: none !important;
+  -webkit-line-clamp: unset !important;
+}
+
+[data-ss-channel-page="detail"] ytm-browse ytm-compact-video-renderer :is(.YtmCompactMediaItemSubhead, .YtmCompactMediaItemByline, .YtmCompactMediaItemStats) {
+  opacity: 1 !important;
+  color: var(--ss-secondary) !important;
+  line-height: 1.3 !important;
+}
+
+@media (max-width: 380px) {
+  [data-ss-channel-page="detail"] .ytPageHeaderViewModelHeadline:has(.ytPageHeaderViewModelHeadlineImage) {
+    padding-block-start: 20px;
+    padding-inline-end: 0;
+  }
+}
